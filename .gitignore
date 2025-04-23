@@ -1,0 +1,21 @@
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE files
+.idea/
+.vscode/
+# Python cache
+__pycache__/
+*.pyc
+
+# Other specific files/folders if needed
+chroma_store/
+figures/
+files/*
+!files/.gitkeep
+
+docstore_mapping.json
