@@ -7,8 +7,8 @@ api_key = os.getenv("OPENAI_API_KEY")
 import json
 import base64
 
-from vector_store import  resize_base64_image
-from summarize import encode_image
+from utils.vector_store import  resize_base64_image # Updated import
+from utils.summarize import encode_image # Updated import
 
 from langchain.retrievers.multi_vector import MultiVectorRetriever 
 from langchain.storage import InMemoryStore
@@ -194,7 +194,7 @@ chain_multimodal_rag = multi_modal_rag_chain(retriever_multi_vector_img)
 print("✅ RAG Chain Built.")
 
 # 6. Run a Query
-query = "愛情交友的受害者人數" # Example query
+query = "受害者的年齡分佈" # Example query
 print(f"\n❓ Running Query: {query}\n")
 
 # Optional: Check what the retriever fetches directly

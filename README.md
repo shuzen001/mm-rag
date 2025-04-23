@@ -25,12 +25,13 @@
 mllm_rag/
 ├── files/                  # 放置待處理的 PDF 文件
 │   └── .gitkeep
+├── utils/                  # 輔助工具腳本 (New Folder)
+│   ├── extract_file_utils.py
+│   ├── summarize.py
+│   └── vector_store.py
 ├── .env                    # 環境變數檔（需自行建立）
 ├── .gitignore              # Git 忽略規則設定
 ├── requirements.txt        # 套件依賴清單
-├── extract_file_utils.py   # PDF 元素解析工具
-├── summarize.py            # 摘要產生器
-├── vector_store.py         # 向量儲存與多向量檢索器設定
 ├── build_vector_db.py      # 建立摘要與向量資料庫
 ├── main.py                 # 問答流程主程式
 └── README.md               # 本文件

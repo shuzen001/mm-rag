@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
-from extract_file_utils import extract_pdf_elements, categorize_elements
-from summarize import generate_img_summaries, generate_text_summaries
-from vector_store import create_multi_vector_retriever
+from utils.extract_file_utils import extract_pdf_elements, categorize_elements # Updated import
+from utils.summarize import generate_img_summaries, generate_text_summaries # Updated import
+from utils.vector_store import create_multi_vector_retriever # Updated import
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
