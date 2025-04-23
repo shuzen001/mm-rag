@@ -1,0 +1,30 @@
+# Core LangChain libraries
+langchain
+langchain-core
+langchain-openai
+langchain-chroma
+langchain-text-splitters
+
+# OpenAI library (often a dependency, but good to list explicitly)
+openai
+
+# Vector Database
+chromadb
+
+# Document Parsing (including extras for PDF image/table extraction)
+# Note: unstructured[local-inference] can be large.
+# Alternatively, install 'unstructured' and ensure system dependencies
+# like poppler-utils and tesseract-ocr are installed manually.
+unstructured[all-docs]
+
+# Environment variable management
+python-dotenv
+
+# Image processing
+Pillow
+
+# Tokenizer used by LangChain text splitters
+tiktoken
+
+# Optional: Used in vector_store.py for image display in notebooks
+ipython
