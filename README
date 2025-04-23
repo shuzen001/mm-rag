@@ -4,163 +4,141 @@
 
 這是一個基於 LangChain 和 ChromaDB 的多模態檢索增強生成 (Multi-Modal Retrieval-Augmented Generation, MM-RAG) 系統。它能夠處理包含文字、表格和圖像的 PDF 文件，並根據這些文件的內容回答使用者的問題。
 
+---
+
 ## ✨ 主要功能
 
-*   **多模態文件處理**: 使用 `unstructured` 套件解析 PDF 文件，提取文字區塊、表格內容以及內嵌的圖像。
-*   **智慧內容摘要**: 利用 GPT-4o 的強大能力，為文字、表格甚至圖像生成精簡且富含資訊的摘要，優化檢索效率。
-*   **多向量檢索策略**:
-    *   將內容摘要轉換為向量並儲存於 ChromaDB 中，用於快速語意搜尋。
-    *   將原始的文字區塊、表格字串以及圖像的**檔案參照**（包含檔名與對應摘要的字典）儲存在獨立的文件儲存區 (Docstore)，並透過 ID 與摘要向量連結。
-*   **多模態問答生成**: 結合檢索到的文字、表格內容以及對應的圖像（載入後轉換為 Base64），建構豐富的上下文資訊，提交給 GPT-4o 模型生成精確的回答。
-*   **環境變數管理**: 使用 `.env` 檔案安全地管理 OpenAI API 金鑰。
-*   **模組化設計**: 將 PDF 解析、摘要生成、向量儲存與 RAG 鏈等功能拆分至不同 Python 檔案，方便維護與擴展。
+- **多模態文件處理**：使用 `unstructured` 套件解析 PDF，提取文字、表格、圖像。
+- **智慧內容摘要**：利用 GPT-4o 為各元素生成精簡且資訊密度高的摘要。
+- **多向量檢索策略**：
+  - 將摘要轉為向量儲存於 ChromaDB，用於語意搜尋。
+  - 將原始內容與圖片參照（含檔名與摘要）儲存在 Docstore，並透過 ID 與向量連結。
+- **多模態問答生成**：組合圖片、表格、文字上下文，送入 GPT-4o 回答問題。
+- **環境變數管理**：使用 `.env` 檔案安全管理 OpenAI API 金鑰。
+- **模組化設計**：功能拆分為多個獨立 Python 檔案，方便維護與擴展。
+
+---
 
 ## 📁 專案結構
-mllm_rag/
-├── files/                  # 存放待處理的 PDF 檔案 (請在此放入您的 PDF)
-│   └── .gitkeep
-├── figures/                # 由 extract_file_utils.py 自動產生，存放從 PDF 提取出的圖片
-│   └── .gitkeep
-├── chroma_store/           # 由 ChromaDB 自動產生，存放向量資料庫的持久化檔案
-│   └── .gitkeep
-├── .env                    # 環境變數檔案 (需自行建立)
-├── .gitignore              # Git 忽略設定檔
-├── requirements.txt        # Python 套件依賴列表
-├── extract_file_utils.py   # PDF 文件解析與元素分類工具
-├── summarize.py            # 文字、表格、圖像摘要生成功能
-├── vector_store.py         # 向量資料庫設定、多向量檢索器建立邏輯
-├── build_vector_db.py      # 主腳本：讀取 PDF、生成摘要、建立並儲存向量資料庫
-├── main.py                 # 主腳本：載入資料庫、執行 RAG 問答流程
-└── README.md               # 本說明文件
 
+```text
+mllm_rag/
+├── files/                  # 放置待處理的 PDF 文件
+│   └── .gitkeep
+├── figures/                # 提取的圖片儲存處
+│   └── .gitkeep
+├── chroma_store/           # ChromaDB 向量儲存位置
+│   └── .gitkeep
+├── .env                    # 環境變數檔（需自行建立）
+├── .gitignore              # Git 忽略規則設定
+├── requirements.txt        # 套件依賴清單
+├── extract_file_utils.py   # PDF 元素解析工具
+├── summarize.py            # 摘要產生器
+├── vector_store.py         # 向量儲存與多向量檢索器設定
+├── build_vector_db.py      # 建立摘要與向量資料庫
+├── main.py                 # 問答流程主程式
+└── README.md               # 本文件
+```
+
+---
 
 ## ⚙️ 環境準備
 
-
-## 🚀 安裝與設定
-
-1.  **複製專案**:
-    ```bash
-    # 如果您是從 Git 儲存庫開始
-    # git clone <您的儲存庫 URL>
-    cd /Users/tony/Desktop/Intern/mllm_rag
-    ```
-
-2.  **建立虛擬環境 (建議)**:
+1. 安裝 Python 3.10+
+2. 安裝 `poppler-utils`（Linux/macOS 解析 PDF 時可能需要）
+3. 建立虛擬環境（建議）：
     ```bash
     python -m venv venv
     source venv/bin/activate  # macOS/Linux
-    # venv\Scripts\activate  # Windows
+    # venv\Scripts\activate   # Windows
     ```
 
-3.  **安裝 Python 依賴套件**:
-    *   確保您已經在專案根目錄下建立了 `requirements.txt` 檔案 (如先前步驟所示)。
-    *   執行安裝：
-        ```bash
-        pip install -r requirements.txt
-        ```
+---
 
-4.  **設定 OpenAI API 金鑰**:
-    *   在專案根目錄 (`/Users/tony/Desktop/Intern/mllm_rag/`) 下建立一個名為 `.env` 的檔案。
-    *   在 `.env` 檔案中加入您的 OpenAI API 金鑰，格式如下：
-        ```dotenv
-        OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        ```
-    *   **重要**: 確保將 `.env` 檔案加入您的 `.gitignore` 檔案中，以避免將您的金鑰意外提交到版本控制系統。如果 `.gitignore` 檔案不存在，請建立它，並至少包含以下內容：
-        ```gitignore
-        # Environment variables
-        .env
+## 🚀 安裝與設定
 
-        # Python virtual environment
-        venv/
-        .venv/
+1. **安裝依賴套件**：
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-        # Python cache
-        __pycache__/
-        *.pyc
+2. **設定 API 金鑰**：
+    在專案根目錄下建立 `.env` 檔案並填入以下內容：
+    ```dotenv
+    OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    ```
 
-        # IDE files
-        .idea/
-        .vscode/
+3. **建議 .gitignore 內容**：
+    ```gitignore
+    .env
+    venv/
+    __pycache__/
+    *.pyc
+    .vscode/
+    chroma_store/
+    figures/
+    docstore_mapping.json
+    ```
 
-        # Generated data
-        chroma_store/
-        figures/
-        docstore_mapping.json
-        ```
+---
 
 ## 📖 使用說明
 
-1.  **步驟一：準備 PDF 文件**
-    *   將您想要處理的 PDF 文件放入專案根目錄下的 `files/` 資料夾中。
+### 1️⃣ 放入 PDF 檔案
+將你的 PDF 放入 `files/` 資料夾。
 
-2.  **步驟二：建立向量資料庫**
-    *   執行 `build_vector_db.py` 腳本。此腳本會：
-        *   讀取 `files/` 資料夾中的所有 PDF 文件。
-        *   使用 `unstructured` 解析文件，提取文字、表格和圖片（圖片會存入 `figures/`）。
-        *   使用 GPT-4o 為文字、表格和圖片生成摘要。
-        *   將摘要嵌入 (Embeddings) 並存入 `chroma_store/` 中的 ChromaDB 向量資料庫。
-        *   將原始內容（文字、表格）或參照（包含圖片檔名+摘要的字典）與其對應的摘要 ID 映射關係儲存到 `docstore_mapping.json`。
-    ```bash
-    python build_vector_db.py
-    ```
-    *   執行成功後，您會看到 `✅ Vector database 建立完成並儲存！` 的訊息，並且 `chroma_store/` 和 `figures/` 資料夾以及 `docstore_mapping.json` 檔案會被建立或更新。
+### 2️⃣ 建立向量資料庫
+執行以下指令：
+```bash
+python build_vector_db.py
+```
 
-3.  **步驟三：執行 RAG 問答**
-    *   執行 `main.py` 腳本。此腳本會：
-        *   載入先前建立的 ChromaDB 向量資料庫。
-        *   載入 `docstore_mapping.json` 並重建文件儲存區 (Docstore)。
-        *   初始化多向量檢索器。
-        *   定義 RAG 鏈，包含檢索、上下文處理（載入圖片）、提示詞組合、模型呼叫等步驟。
-        *   執行預設的查詢（您可以在 `main.py` 中修改 `query` 變數）。
-        *   輸出檢索到的原始內容（包含圖片檔名與摘要）以及最終由 GPT-4o 生成的答案。
-    ```bash
-    python main.py
-    ```
-    *   您可以修改 `main.py` 檔案底部的 `query` 變數來提出您自己的問題。
+此腳本會：
+- 提取 PDF 中的文字、表格與圖片
+- 使用 GPT-4o 為各元素產生摘要
+- 儲存向量到 ChromaDB（`chroma_store/`）
+- 儲存對應關係至 `docstore_mapping.json`
+
+### 3️⃣ 啟動 RAG 問答流程
+```bash
+python main.py
+```
+
+你可以在 `main.py` 修改 `query = "你的問題"` 來進行不同查詢。
+
+---
 
 ## 💡 工作流程詳解
 
-1.  **資料擷取與處理 (`build_vector_db.py` & `extract_file_utils.py`)**:
-    *   `extract_pdf_elements`: 使用 `unstructured` 解析 PDF，區分文字、表格，並將圖片儲存為獨立檔案到 `figures/`。
-    *   `categorize_elements`: 將解析結果分類為文字和表格列表。
-    *   文字分割 (`CharacterTextSplitter`): 將較長的文字區塊分割成適合模型處理的大小 (`texts_4k_token`)。
+1. **解析 PDF**
+    - 使用 `unstructured` 解析出文字、表格與圖像。
+    - 圖片會存到 `figures/` 資料夾。
 
-2.  **內容摘要 (`summarize.py`)**:
-    *   `generate_text_summaries`: 使用 GPT-4o 為文字區塊 (`texts_4k_token`) 和表格 (`all_tables`) 生成摘要。
-    *   `generate_img_summaries`: 遍歷 `figures/` 資料夾，使用 GPT-4o 的視覺能力為每張圖片生成摘要，並記錄原始檔名 (`img_filenames`)。
+2. **摘要生成**
+    - `summarize.py` 會針對文字/表格/圖片產生摘要。
+    - GPT-4o 處理圖片時使用 Base64 格式。
 
-3.  **向量化與儲存 (`vector_store.py` & `build_vector_db.py`)**:
-    *   `OpenAIEmbeddings`: 將文字、表格、圖片的**摘要**轉換為向量。
-    *   `Chroma`: 將摘要向量及其對應的唯一 ID 存入 `chroma_store/` 向量資料庫。
-    *   `create_multi_vector_retriever`:
-        *   建立 `InMemoryStore` 作為 Docstore。
-        *   將原始文字 (`texts_4k_token`)、表格內容 (`all_tables`)，以及**包含檔名和摘要的字典**（針對圖片，使用 `img_filenames` 和 `image_summaries`），與其對應的唯一 ID 關聯起來，存入 Docstore。
-        *   將這個 ID 到內容/參照的完整映射關係保存為 `docstore_mapping.json`。
+3. **向量嵌入與資料儲存**
+    - 使用 `OpenAIEmbeddings` 將摘要轉換為向量。
+    - 儲存於 ChromaDB，並用 `InMemoryStore` 建立 Docstore。
 
-4.  **檢索與生成 (`main.py`)**:
-    *   使用者輸入查詢 (`query`)。
-    *   `MultiVectorRetriever`:
-        *   將查詢轉換為向量。
-        *   在 ChromaDB 中搜尋最相似的**摘要向量**，獲取對應的 `doc_id`。
-        *   使用 `doc_id` 從重建的 `InMemoryStore` (Docstore) 中查找原始內容（文字、表格）或圖片參照（`{'filename': ..., 'summary': ...}`）。
-    *   `split_image_text_types`: 處理檢索器返回的內容列表。如果是圖片參照，則根據檔名從 `figures/` 資料夾讀取圖片，轉換為 Base64 字串；如果是文字/表格，則直接收集。
-    *   `img_prompt_func`: 將處理過的文字/表格內容和 Base64 圖片組合成適合 GPT-4o 的多模態輸入格式（包含通用 AI 助手提示、使用者問題和上下文）。
-    *   `ChatOpenAI`: 呼叫 GPT-4o 模型處理組合好的輸入。
-    *   `StrOutputParser`: 解析模型的輸出，得到最終的文字答案。
-    *   結果以串流方式輸出到控制台。
+4. **問答流程**
+    - `main.py` 讀取向量資料庫與 Docstore。
+    - 使用 `MultiVectorRetriever` 檢索最相關內容。
+    - 將文字、表格、圖片組合後送入 GPT-4o 回答。
 
-## 🔧 客製化
+---
 
-您可以根據需求調整以下部分：
+## 🔧 可客製化項目
 
-*   **模型**: 在 `summarize.py` 和 `main.py` 中修改 `ChatOpenAI` 的 `model` 參數（例如換成其他支援多模態的模型）。
-*   **提示詞 (Prompts)**: 修改 `summarize.py` 中的摘要提示詞，或 `main.py` 中的 `img_prompt_func` RAG 提示詞，以調整輸出風格或任務目標。
-*   **路徑**: 修改 `main.py`, `build_vector_db.py` 等檔案中定義的路徑常數（`VECTORSTORE_PATH`, `DOCSTORE_MAPPING_PATH`, `IMAGE_FIGURES_PATH`, `fpath`）。
-*   **PDF 解析參數**: 在 `extract_file_utils.py` 的 `extract_pdf_elements` 函數中調整 `unstructured` 的參數，如 `chunking_strategy`, `max_characters` 等。
-*   **嵌入模型**: 在 `build_vector_db.py` 和 `main.py` 中更換 `OpenAIEmbeddings` 為其他嵌入模型。
-*   **圖片大小調整**: 在 `main.py` 的 `split_image_text_types` 函數中修改 `resize_base64_image` 的 `size` 參數。
+- **模型選擇**：可修改 `ChatOpenAI` 的 `model` 參數使用不同模型
+- **提示詞調整**：可自定義 `img_prompt_func` 或摘要提示詞
+- **嵌入模型替換**：可改為 HuggingFace 模型或本地嵌入器
+- **圖像處理邏輯**：可調整圖像尺寸、Base64 編碼邏輯
+- **儲存與檢索策略**：可更換向量資料庫、增加 metadata 儲存
+
+---
 
 ## 📜 授權條款
 
-本專案採用 MIT 授權條款。
+本專案採用 [MIT License](https://opensource.org/licenses/MIT) 授權。
