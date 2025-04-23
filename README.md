@@ -25,10 +25,6 @@
 mllm_rag/
 ├── files/                  # 放置待處理的 PDF 文件
 │   └── .gitkeep
-├── figures/                # 提取的圖片儲存處
-│   └── .gitkeep
-├── chroma_store/           # ChromaDB 向量儲存位置
-│   └── .gitkeep
 ├── .env                    # 環境變數檔（需自行建立）
 ├── .gitignore              # Git 忽略規則設定
 ├── requirements.txt        # 套件依賴清單
