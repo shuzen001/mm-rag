@@ -45,7 +45,11 @@ mllm_rag/
 ## ⚙️ 環境準備
 
 1. 安裝 Python 3.10+
-2. 安裝 `poppler-utils`（Linux/macOS 解析 PDF 時可能需要）
+2. 安裝 `poppler-utils`、`tesseract-ocr` 與 `libreoffice`：
+   ```bash
+   # 以 Ubuntu 為例
+   sudo apt-get install poppler-utils tesseract-ocr libreoffice
+   ```
 3. 建立虛擬環境（建議）：
     ```bash
     python -m venv venv
