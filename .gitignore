@@ -15,7 +15,7 @@ __pycache__/
 # Other specific files/folders if needed
 faiss_store/
 figures/
-# files/*
+files/*
 !files/.gitkeep
 
 uploads/
