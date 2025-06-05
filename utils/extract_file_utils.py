@@ -492,9 +492,9 @@ def categorize_elements(raw_elements):
     return texts, tables
 
 if __name__ == "__main__":
-    print("Wrong file execution. Please use the build_vector_db.py to build up the vector database. Then use the main.py to run the mm-RAG.")
+    print("This module should be used via app.py or main.py; it is not intended for direct execution.")
 
-# 添加 process_single_file 函數，從 build_vector_db.py 移植過來
+# 供上傳流程使用的 process_single_file 函數
 def process_single_file(fname: str, fpath: str) -> dict:
     """
     處理單一檔案 (PDF 或 PPTX)，返回處理結果
