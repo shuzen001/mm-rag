@@ -464,4 +464,4 @@ def generate_img_summaries(figures_dir: str, filter_images=True) -> Tuple[List[s
 
 
 if __name__ == "__main__":
-    print("Wrong file execution. Please use the build_vector_db.py to build up the vector database. Then use the main.py to run the mm-RAG.")
+    print("This module is part of the processing pipeline; invoke it via app.py or main.py.")
