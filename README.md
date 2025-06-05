@@ -2,19 +2,17 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-這是一個基於 LangChain 和 ChromaDB 的多模態檢索增強生成 (Multi-Modal Retrieval-Augmented Generation, MM-RAG) 系統。它能夠處理包含文字、表格和圖像的 PDF 文件，並根據這些文件的內容回答使用者的問題。
+本專案是一個基於 FastAPI、LangChain 與 FAISS 的多模態檢索增強生成（MM-RAG）系統。支援 PDF、PPTX、DOCX 等文件自動抽取文字、表格、圖片，並以 GPT-4o 進行摘要，所有內容向量化後存入 FAISS，支援語意檢索與問答。
 
 ---
 
 ## ✨ 主要功能
 
-- **多模態文件處理**：使用 `unstructured` 套件解析 PDF，提取文字、表格、圖像。
-- **智慧內容摘要**：利用 GPT-4o 為各元素生成精簡且資訊密度高的摘要。
-- **多向量檢索策略**：
-  - 將摘要轉為向量儲存於 ChromaDB，用於語意搜尋。
-  - 將原始內容與圖片參照（含檔名與摘要）儲存在 Docstore，並透過 ID 與向量連結。
+- **多模態文件處理**：自動解析 PDF、PPTX、DOCX，抽取文字、表格、圖片。
+- **智慧內容摘要**：利用 GPT-4o 為各元素生成精簡摘要。
+- **多向量檢索**：摘要向量儲存於 FAISS，支援語意搜尋。
 - **多模態問答生成**：組合圖片、表格、文字上下文，送入 GPT-4o 回答問題。
-- **環境變數管理**：使用 `.env` 檔案安全管理 OpenAI API 金鑰。
+- **API 介面**：提供檔案上傳、查詢、重置、狀態查詢等 RESTful API。
 - **模組化設計**：功能拆分為多個獨立 Python 檔案，方便維護與擴展。
 
 ---
@@ -23,18 +21,23 @@
 
 ```text
 mllm_rag/
-├── files/                  # 放置待處理的 PDF 文件
-│   └── .gitkeep
-├── utils/                  # 輔助工具腳本 (New Folder)
-│   ├── extract_file_utils.py
-│   ├── summarize.py
-│   └── vector_store.py
+├── app.py                  # FastAPI 主程式，API 入口
+├── main.py                 # 問答流程主程式（可單機測試）
+├── build_vector_db.py      # 建立摘要與向量資料庫
+├── requirements.txt        # 套件依賴清單
 ├── .env                    # 環境變數檔（需自行建立）
 ├── .gitignore              # Git 忽略規則設定
-├── requirements.txt        # 套件依賴清單
-├── build_vector_db.py      # 建立摘要與向量資料庫
-├── main.py                 # 問答流程主程式
-└── README.md               # 本文件
+├── README.md               # 本文件
+├── database/               # 向量庫、圖片、docstore
+│   ├── faiss_store/        # FAISS 向量資料庫
+│   ├── figures/            # 圖片存放
+│   └── docstore_mapping.json # Docstore 映射
+├── files/                  # 待處理的原始文件
+├── uploads/                # 上傳暫存區
+└── utils/                  # 輔助工具腳本
+    ├── extract_file_utils.py
+    ├── summarize.py
+    └── vector_store.py
 ```
 
 ---
@@ -49,90 +52,100 @@ mllm_rag/
     source venv/bin/activate  # macOS/Linux
     # venv\Scripts\activate   # Windows
     ```
-
----
-
-## 🚀 安裝與設定
-
-1. **安裝依賴套件**：
+4. 安裝依賴：
     ```bash
     pip install -r requirements.txt
     ```
-
-2. **設定 API 金鑰**：
-    在專案根目錄下建立 `.env` 檔案並填入以下內容：
+5. 設定 OpenAI API 金鑰：
+    在專案根目錄下建立 `.env` 檔案，內容如下：
     ```dotenv
     OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     ```
 
-3. **建議 .gitignore 內容**：
-    ```gitignore
-    .env
-    venv/
-    __pycache__/
-    *.pyc
-    .vscode/
-    chroma_store/
-    figures/
-    docstore_mapping.json
-    ```
-
 ---
 
-## 📖 使用說明
+## 🚀 啟動與使用流程
 
-### 1️⃣ 放入 PDF 檔案
-將你的 PDF 放入 `files/` 資料夾。
+### 1️⃣ 啟動 API 服務
 
-### 2️⃣ 建立向量資料庫
-執行以下指令：
 ```bash
-python build_vector_db.py
+uvicorn app:app --host 0.0.0.0 --port 1230 --reload
 ```
 
-此腳本會：
-- 提取 PDF 中的文字、表格與圖片
-- 使用 GPT-4o 為各元素產生摘要
-- 儲存向量到 ChromaDB（`chroma_store/`）
-- 儲存對應關係至 `docstore_mapping.json`
+### 2️⃣ 上傳文件
 
-### 3️⃣ 啟動 RAG 問答流程
-```bash
-python main.py
+- 透過 `/upload` API 上傳 PDF、PPTX、DOCX 檔案，支援背景處理。
+- 上傳後自動抽取內容、摘要並存入 FAISS。
+
+### 3️⃣ 查詢問答
+
+- 使用 `/query` API 提問，系統會檢索最相關內容並組合多模態上下文給 GPT-4o 回答。
+
+### 4️⃣ 查詢處理狀態
+
+- `/processing-status` 可查詢所有文件處理進度。
+
+### 5️⃣ 重置系統
+
+- `/reset` API 可一鍵清空所有上傳文件、FAISS 向量庫、docstore 映射。
+
+---
+
+## 🛠️ API 路由說明
+
+### 1. 上傳文件
+- `PUT /upload`
+- 參數：`file` (UploadFile)，`process_immediately` (bool, 預設 True)
+- 回傳：文件 ID、檔名、狀態、訊息
+
+### 2. 查詢問答
+- `POST /query`
+- 參數：`query` (str)，`top_k` (int, 預設 5)
+- 回傳：`answer` (str)，`processing_time` (float)
+
+### 3. 查詢處理狀態
+- `GET /processing-status`
+- 回傳：所有文件的處理狀態、進度
+
+### 4. 重置系統
+- `POST /reset`
+- 回傳：重置狀態、訊息、時間戳
+
+---
+
+## 📦 API 範例（以 Python requests 示意）
+
+```python
+import requests
+
+# 上傳文件
+with open('files/your.pdf', 'rb') as f:
+    res = requests.put('http://localhost:1230/upload', files={'file': f})
+    print(res.json())
+
+# 查詢問答
+payload = {"query": "請問本文件的重點？"}
+res = requests.post('http://localhost:1230/query', json=payload)
+print(res.json())
+
+# 查詢處理狀態
+res = requests.get('http://localhost:1230/processing-status')
+print(res.json())
+
+# 重置系統
+res = requests.post('http://localhost:1230/reset')
+print(res.json())
 ```
 
-你可以在 `main.py` 修改 `query = "你的問題"` 來進行不同查詢。
-
 ---
 
-## 💡 工作流程詳解
+## 🔧 可擴展性
 
-1. **解析 PDF**
-    - 使用 `unstructured` 解析出文字、表格與圖像。
-    - 圖片會存到 `figures/` 資料夾。
-
-2. **摘要生成**
-    - `summarize.py` 會針對文字/表格/圖片產生摘要。
-    - GPT-4o 處理圖片時使用 Base64 格式。
-
-3. **向量嵌入與資料儲存**
-    - 使用 `OpenAIEmbeddings` 將摘要轉換為向量。
-    - 儲存於 ChromaDB，並用 `InMemoryStore` 建立 Docstore。
-
-4. **問答流程**
-    - `main.py` 讀取向量資料庫與 Docstore。
-    - 使用 `MultiVectorRetriever` 檢索最相關內容。
-    - 將文字、表格、圖片組合後送入 GPT-4o 回答。
-
----
-
-## 🔧 可客製化項目
-
-- **模型選擇**：可修改 `ChatOpenAI` 的 `model` 參數使用不同模型
-- **提示詞調整**：可自定義 `img_prompt_func` 或摘要提示詞
-- **嵌入模型替換**：可改為 HuggingFace 模型或本地嵌入器
-- **圖像處理邏輯**：可調整圖像尺寸、Base64 編碼邏輯
-- **儲存與檢索策略**：可更換向量資料庫、增加 metadata 儲存
+- **模型選擇**：可修改 `utils/LLM_Tool.py` 內的模型設定
+- **提示詞調整**：可自定義 `summarize.py` 內摘要提示詞
+- **嵌入模型替換**：可改為 HuggingFace、本地嵌入器
+- **儲存策略**：可擴充 metadata、支援更多向量庫
+- **API 路由**：可依需求擴充更多檢索/分析功能
 
 ---
 

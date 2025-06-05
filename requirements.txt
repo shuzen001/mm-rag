@@ -2,14 +2,13 @@
 langchain
 langchain-core
 langchain-openai
-langchain-chroma
 langchain-text-splitters
 
 # OpenAI library (often a dependency, but good to list explicitly)
 openai
 
 # Vector Database
-chromadb
+faiss-cpu
 
 # Document Parsing (including extras for PDF image/table extraction)
 # Note: unstructured[local-inference] can be large.

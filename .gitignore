@@ -13,9 +13,14 @@ __pycache__/
 *.pyc
 
 # Other specific files/folders if needed
-chroma_store/
+faiss_store/
 figures/
 files/*
 !files/.gitkeep
+
+uploads/
+.DS_Store
+
+test.ipynb
 
 docstore_mapping.json
