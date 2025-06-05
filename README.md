@@ -20,7 +20,7 @@
 ## 📁 專案結構
 
 ```text
-mllm_rag/
+mm-rag/
 ├── app.py                  # FastAPI 主程式，API 入口
 ├── main.py                 # 問答流程主程式（可單機測試）
 ├── build_vector_db.py      # 建立摘要與向量資料庫
