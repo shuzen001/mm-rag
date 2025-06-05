@@ -285,4 +285,4 @@ def resize_base64_image(base64_string, size=(128, 128)):
 
 
 if __name__ == "__main__":
-    print("Wrong file execution. Please use the build_vector_db.py to build up the vector database. Then use the main.py to run the mm-RAG.")
+    print("This module is used by the main workflow; run app.py or main.py instead of executing it directly.")

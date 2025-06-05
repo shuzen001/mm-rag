@@ -20,10 +20,10 @@
 ## 📁 專案結構
 
 ```text
+
 mm-rag/
-├── app.py                  # FastAPI 主程式，API 入口
+├── app.py                  # FastAPI 主程式，處理檔案上傳與向量庫建構
 ├── main.py                 # 問答流程主程式（可單機測試）
-├── build_vector_db.py      # 建立摘要與向量資料庫
 ├── requirements.txt        # 套件依賴清單
 ├── .env                    # 環境變數檔（需自行建立）
 ├── .gitignore              # Git 忽略規則設定
@@ -45,7 +45,11 @@ mm-rag/
 ## ⚙️ 環境準備
 
 1. 安裝 Python 3.10+
-2. 安裝 `poppler-utils`（Linux/macOS 解析 PDF 時可能需要）
+2. 安裝 `poppler-utils`、`tesseract-ocr` 與 `libreoffice`：
+   ```bash
+   # 以 Ubuntu 為例
+   sudo apt-get install poppler-utils tesseract-ocr libreoffice
+   ```
 3. 建立虛擬環境（建議）：
     ```bash
     python -m venv venv

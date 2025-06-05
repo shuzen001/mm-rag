@@ -277,7 +277,7 @@ print("🔄 Initializing MultiVectorRetriever...")
 retriever_multi_vector_img = MultiVectorRetriever(
     vectorstore=vectorstore,
     docstore=store,
-    id_key="doc_id", # Make sure this matches the key used in build_vector_db.py
+    id_key="doc_id", # Must match the key used when storing documents
 )
 print("✅ MultiVectorRetriever Initialized.")
 
