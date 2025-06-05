@@ -30,7 +30,6 @@ texts_4k_token = text_splitter.split_text(joined_texts)
 text_summaries, table_summaries = generate_text_summaries(texts_4k_token, all_tables, summarize_texts=True)
 
 # 圖片摘要
-# Modified to capture filenames
 image_summaries, img_filenames = generate_img_summaries("figures/")
 
 # 建立 vector store 並儲存
@@ -40,7 +39,7 @@ vectorstore = Chroma(
     persist_directory="./chroma_store"
 )
 
-# Modified to pass img_filenames and specify docstore path
+# 建立 vector store 並儲存後處理
 _ = create_multi_vector_retriever(
     vectorstore,
     text_summaries, 
@@ -48,8 +47,8 @@ _ = create_multi_vector_retriever(
     table_summaries, 
     all_tables,
     image_summaries,
-    img_filenames, # Pass the filenames
-    docstore_path="./docstore_mapping.json" # Specify path to save mapping
+    img_filenames,
+    docstore_path="./docstore_mapping.json"
 )
 
 print("✅ Vector database 建立完成並儲存！")
