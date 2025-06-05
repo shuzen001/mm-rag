@@ -290,7 +290,7 @@ print("✅ RAG Chain Built.")
 # 將測試查詢代碼包裝在 if __name__ == "__main__" 內，避免在被導入時執行
 if __name__ == "__main__":
     # 6. Run a Query
-    query = "APRO實習" # Example query
+    query = "" # Example query
     print(f"\n❓ Running Query: {query}\n")
 
     # Optional: Check what the retriever fetches directly
