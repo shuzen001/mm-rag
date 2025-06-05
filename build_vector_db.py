@@ -12,13 +12,17 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 
 fpath = "files/"
+FIGURES_PATH = "figures/"
+
+if not os.path.exists(FIGURES_PATH):
+    os.makedirs(FIGURES_PATH)
 
 # 處理所有 PDF 檔案
 all_texts = []
 all_tables = []
 for fname in os.listdir(fpath):
     if fname != ".gitkeep" and fname.lower().endswith(".pdf"):
-        raw_pdf_elements = extract_pdf_elements(fpath, fname, img_output_dir="figures/")
+        raw_pdf_elements = extract_pdf_elements(fpath, fname, FIGURES_PATH)
         texts, tables = categorize_elements(raw_pdf_elements)
         all_texts.extend(texts)
         all_tables.extend(tables)
@@ -31,7 +35,7 @@ text_summaries, table_summaries = generate_text_summaries(texts_4k_token, all_ta
 
 # 圖片摘要
 # Modified to capture filenames
-image_summaries, img_filenames = generate_img_summaries("figures/")
+image_summaries, img_filenames = generate_img_summaries(FIGURES_PATH)
 
 # 建立 vector store 並儲存
 vectorstore = Chroma(

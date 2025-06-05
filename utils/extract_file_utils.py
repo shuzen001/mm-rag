@@ -3,7 +3,7 @@ from unstructured.partition.pdf import partition_pdf
 import os
 
 
-def extract_pdf_elements(pdf_dir, fname, img_output_dir=None):
+def extract_pdf_elements(pdf_dir, fname, output_dir=None):
     """從 PDF 檔案中提取圖片、表格與分段文字。
 
     Parameters
@@ -12,7 +12,7 @@ def extract_pdf_elements(pdf_dir, fname, img_output_dir=None):
         PDF 檔案所在資料夾路徑。
     fname : str
         PDF 檔名。
-    img_output_dir : str, optional
+    output_dir : str, optional
         圖片輸出資料夾路徑，預設與 ``pdf_dir`` 相同。
 
     Returns
@@ -21,8 +21,8 @@ def extract_pdf_elements(pdf_dir, fname, img_output_dir=None):
         unstructured 解析後的元素列表（圖片、表格、文字等）。
     """
 
-    if img_output_dir is None:
-        img_output_dir = pdf_dir
+    if output_dir is None:
+        output_dir = pdf_dir
 
     return partition_pdf(
         filename=os.path.join(pdf_dir, fname),
@@ -33,7 +33,7 @@ def extract_pdf_elements(pdf_dir, fname, img_output_dir=None):
         max_characters=4000,
         new_after_n_chars=3800,
         combine_text_under_n_chars=2000,
-        image_output_dir_path=img_output_dir,
+        image_output_dir_path=output_dir,
     )
 
 # 目的：方便後續針對不同型態資料進行摘要與檢索。
@@ -54,4 +54,6 @@ def categorize_elements(raw_pdf_elements):
 
 
 if __name__ == "__main__":
-    print("Wrong file execution. Please use the build_vector_db.py to build up the vector database. Then use the main.py to run the mm-RAG.")
+    print(
+        "Wrong file execution. Please use the build_vector_db.py to build up the vector database. Then use the main.py to run the mm-RAG."
+    )

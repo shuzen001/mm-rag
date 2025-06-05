@@ -123,4 +123,6 @@ def generate_img_summaries(path):
 
 
 if __name__ == "__main__":
-    print("Wrong file execution. Please use the build_vector_db.py to build up the vector database. Then use the main.py to run the mm-RAG.")
+    print(
+        "Wrong file execution. Please use the build_vector_db.py to build up the vector database. Then use the main.py to run the mm-RAG."
+    )
