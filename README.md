@@ -136,6 +136,19 @@ python main.py
 
 ---
 
+## 🧪 測試
+
+1. 安裝開發依賴：
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+2. 執行測試：
+   ```bash
+   pytest
+   ```
+
+---
+
 ## 📜 授權條款
 
 本專案採用 [MIT License](https://opensource.org/licenses/MIT) 授權。
