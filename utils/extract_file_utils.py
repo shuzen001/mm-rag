@@ -1,16 +1,31 @@
 from langchain_text_splitters import CharacterTextSplitter
 from unstructured.partition.pdf import partition_pdf
+import os
 
 
-def extract_pdf_elements(path, fname):
+def extract_pdf_elements(pdf_dir, fname, img_output_dir=None):
+    """從 PDF 檔案中提取圖片、表格與分段文字。
+
+    Parameters
+    ----------
+    pdf_dir : str
+        PDF 檔案所在資料夾路徑。
+    fname : str
+        PDF 檔名。
+    img_output_dir : str, optional
+        圖片輸出資料夾路徑，預設與 ``pdf_dir`` 相同。
+
+    Returns
+    -------
+    list
+        unstructured 解析後的元素列表（圖片、表格、文字等）。
     """
-    從 PDF 檔案中提取圖片、表格與分段文字。
-    path: 檔案路徑，會用來存放圖片（.jpg）
-    fname: 檔案名稱
-    回傳：PDF 元素（圖片、表格、文字等）
-    """
+
+    if img_output_dir is None:
+        img_output_dir = pdf_dir
+
     return partition_pdf(
-        filename=path + fname,
+        filename=os.path.join(pdf_dir, fname),
         extract_images_in_pdf=True,
         extract_tables=True,
         infer_table_structure=True,
@@ -18,7 +33,7 @@ def extract_pdf_elements(path, fname):
         max_characters=4000,
         new_after_n_chars=3800,
         combine_text_under_n_chars=2000,
-        image_output_dir_path=path,
+        image_output_dir_path=img_output_dir,
     )
 
 # 目的：方便後續針對不同型態資料進行摘要與檢索。

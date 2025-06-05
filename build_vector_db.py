@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
 
-from utils.extract_file_utils import extract_pdf_elements, categorize_elements # Updated import
-from utils.summarize import generate_img_summaries, generate_text_summaries # Updated import
-from utils.vector_store import create_multi_vector_retriever # Updated import
+from utils.extract_file_utils import extract_pdf_elements, categorize_elements
+from utils.summarize import generate_img_summaries, generate_text_summaries
+from utils.vector_store import create_multi_vector_retriever
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
@@ -18,7 +18,7 @@ all_texts = []
 all_tables = []
 for fname in os.listdir(fpath):
     if fname != ".gitkeep" and fname.lower().endswith(".pdf"):
-        raw_pdf_elements = extract_pdf_elements(fpath, fname)
+        raw_pdf_elements = extract_pdf_elements(fpath, fname, img_output_dir="figures/")
         texts, tables = categorize_elements(raw_pdf_elements)
         all_texts.extend(texts)
         all_tables.extend(tables)
