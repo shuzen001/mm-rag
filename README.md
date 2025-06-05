@@ -20,7 +20,8 @@
 ## 📁 專案結構
 
 ```text
-mllm_rag/
+
+mm-rag/
 ├── app.py                  # FastAPI 主程式，處理檔案上傳與向量庫建構
 ├── main.py                 # 問答流程主程式（可單機測試）
 ├── requirements.txt        # 套件依賴清單
