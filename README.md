@@ -63,8 +63,25 @@ mm-rag/
 5. 設定 OpenAI API 金鑰：
     在專案根目錄下建立 `.env` 檔案，內容如下：
     ```dotenv
-    OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    ```
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+## 🧪 單元測試
+
+執行所有測試：
+
+```bash
+pytest -q
+```
+
+若要以真實 PDF 執行 `test_convert_file_to_markdown_real_pdf`，請先安裝 `docling`
+相關依賴，並設定環境變數 `DOC_TEST_PDF` 為你的 PDF 路徑：
+
+```bash
+DOC_TEST_PDF=/path/to/your.pdf pytest -q tests/test_docling_markdown.py::test_convert_file_to_markdown_real_pdf
+```
+
+未設定此變數時，整合測試會自動被跳過。
 
 ---
 

@@ -15,6 +15,7 @@ faiss-cpu
 # Alternatively, install 'unstructured' and ensure system dependencies
 # like poppler-utils and tesseract-ocr are installed manually.
 unstructured[all-docs]
+docling
 
 # Environment variable management
 python-dotenv
