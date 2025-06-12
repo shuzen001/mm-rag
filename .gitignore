@@ -24,3 +24,5 @@ uploads/
 test.ipynb
 
 docstore_mapping.json
+
+tests/

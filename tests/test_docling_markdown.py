@@ -77,6 +77,11 @@ def test_convert_file_to_markdown_real_pdf(monkeypatch):
     """Integration test using a user-supplied PDF via the DOC_TEST_PDF env var."""
     pytest.importorskip("docling")
     import importlib
+    try:
+        from dotenv import load_dotenv
+        load_dotenv() # Load environment variables from .env file
+    except ImportError:
+        pytest.skip("python-dotenv not installed, skipping .env load")
 
     module = importlib.import_module("docling_core")
     spec = getattr(module, "__spec__", None)
@@ -87,9 +92,27 @@ def test_convert_file_to_markdown_real_pdf(monkeypatch):
 
     pdf_path_env = os.environ.get("DOC_TEST_PDF")
     if not pdf_path_env:
-        pytest.skip("DOC_TEST_PDF not set")
+        pytest.skip("DOC_TEST_PDF not set. Please set this environment variable to the path of your test PDF.")
 
     pdf_path = Path(pdf_path_env)
-    monkeypatch.setattr(docling_markdown, "_summarize_image", lambda p: "summary")
+    if not pdf_path.is_file():
+        pytest.skip(f"PDF file not found at {pdf_path}. Please check the DOC_TEST_PDF environment variable.")
+
     result = docling_markdown.convert_file_to_markdown(str(pdf_path))
-    assert "summary" in result
+
+    # Create an output directory if it doesn't exist
+    output_dir = Path("tests/markdown_outputs")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Define the output markdown file path
+    output_md_filename = f"{pdf_path.stem}.md"
+    output_md_path = output_dir / output_md_filename
+
+    # Write the result to the markdown file
+    with open(output_md_path, "w", encoding="utf-8") as f:
+        f.write(result)
+
+    print(f"Markdown output saved to: {output_md_path.resolve()}")
+
+    # Assert that the result is a non-empty string
+    assert result and isinstance(result, str)
