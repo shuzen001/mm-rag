@@ -95,41 +95,48 @@ uvicorn app:app --host 0.0.0.0 --port 1230 --reload
 
 ### 2️⃣ 上傳文件
 
-- 透過 `/upload` API 上傳 PDF、PPTX、DOCX 檔案，支援背景處理。
+- 透過 `/mm_rag/upload` API 上傳 PDF、PPTX、DOCX 檔案，支援背景處理。
 - 上傳後自動抽取內容、摘要並存入 FAISS。
 
 ### 3️⃣ 查詢問答
 
-- 使用 `/query` API 提問，系統會檢索最相關內容並組合多模態上下文給 GPT-4o 回答。
+- 使用 `/mm_rag/query` API 提問，系統會檢索最相關內容並組合多模態上下文給 GPT-4o 回答。
 
 ### 4️⃣ 查詢處理狀態
 
-- `/processing-status` 可查詢所有文件處理進度。
+- `/mm_rag/processing-status` 可查詢所有文件處理進度。
 
 ### 5️⃣ 重置系統
 
-- `/reset` API 可一鍵清空所有上傳文件、FAISS 向量庫、docstore 映射。
+- `/mm_rag/reset` API 可一鍵清空所有上傳文件、FAISS 向量庫、docstore 映射。
+
+### 6️⃣ 使用網頁介面
+
+1. 啟動 API 後，開啟瀏覽器並前往 `http://localhost:1230/mm_rag/web/`。
+2. 依照 `database/users.json` 中的帳號密碼登入。
+3. 登入後可直接在頁面上傳文件、查看處理狀態，並於聊天室輸入問題進行檢索問答。
+4. 所有操作均會與該使用者的專屬資料庫同步。
 
 ---
 
 ## 🛠️ API 路由說明
 
 ### 1. 上傳文件
-- `PUT /upload`
+- `PUT /mm_rag/upload`
 - 參數：`file` (UploadFile)，`process_immediately` (bool, 預設 True)
 - 回傳：文件 ID、檔名、狀態、訊息
 
 ### 2. 查詢問答
-- `POST /query`
+- `POST /mm_rag/query`
 - 參數：`query` (str)，`top_k` (int, 預設 5)
 - 回傳：`answer` (str)，`processing_time` (float)
 
 ### 3. 查詢處理狀態
-- `GET /processing-status`
+- `GET /mm_rag/processing-status`
 - 回傳：所有文件的處理狀態、進度
 
 ### 4. 重置系統
-- `POST /reset`
+- `POST /mm_rag/reset`
 - 回傳：重置狀態、訊息、時間戳
 
 ---
@@ -141,20 +148,20 @@ import requests
 
 # 上傳文件
 with open('files/your.pdf', 'rb') as f:
-    res = requests.put('http://localhost:1230/upload', files={'file': f})
+    res = requests.put('http://localhost:1230/mm_rag/upload', files={'file': f})
     print(res.json())
 
 # 查詢問答
 payload = {"query": "請問本文件的重點？"}
-res = requests.post('http://localhost:1230/query', json=payload)
+res = requests.post('http://localhost:1230/mm_rag/query', json=payload)
 print(res.json())
 
 # 查詢處理狀態
-res = requests.get('http://localhost:1230/processing-status')
+res = requests.get('http://localhost:1230/mm_rag/processing-status')
 print(res.json())
 
 # 重置系統
-res = requests.post('http://localhost:1230/reset')
+res = requests.post('http://localhost:1230/mm_rag/reset')
 print(res.json())
 ```
 
