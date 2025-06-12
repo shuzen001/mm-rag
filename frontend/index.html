@@ -8,28 +8,30 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<section class="section" id="login-section">
-    <div class="container">
-        <h1 class="title">登入</h1>
-        <div class="field">
-            <label class="label">使用者名稱</label>
-            <div class="control">
-                <input class="input" type="text" id="username" placeholder="Username">
-            </div>
-        </div>
-        <div class="field">
-            <label class="label">密碼</label>
-            <div class="control">
-                <input class="input" type="password" id="password" placeholder="Password">
-            </div>
-        </div>
-        <div class="field">
-            <div class="control">
-                <button class="button is-primary" id="login-btn">登入</button>
-            </div>
-        </div>
-        <p class="help is-danger" id="login-error" style="display:none"></p>
+<section id="login-section" class="login-page7 section">
+    <div class="login-page7-inner">
+        <article>
+            <header>
+                <div><span>MM-RAG</span></div>
+            </header>
+            <label>
+                <span class="login-page7-label">使用者名稱</span>
+                <input type="text" id="username" placeholder="Username">
+            </label>
+            <label>
+                <span class="login-page7-label">密碼</span>
+                <input type="password" id="password" placeholder="Password">
+            </label>
+            <section>
+                <button id="login-btn">登入</button>
+            </section>
+            <p class="help is-danger" id="login-error" style="display:none"></p>
+        </article>
     </div>
+    <ul class="login-page7-bubbles">
+        <li></li><li></li><li></li><li></li><li></li>
+        <li></li><li></li><li></li><li></li><li></li>
+    </ul>
 </section>
 <section class="section" id="main-section" style="display:none">
     <div class="container">
@@ -55,17 +57,13 @@
                 <tbody></tbody>
             </table>
         </div>
-        <div id="chat-area" class="box">
-            <h2 class="subtitle">QA 聊天室</h2>
-            <div id="chat-log" style="height:300px; overflow-y:auto; border:1px solid #ddd; padding:10px; margin-bottom:10px"></div>
-            <div class="field has-addons">
-                <div class="control is-expanded">
-                    <input class="input" type="text" id="chat-input" placeholder="輸入問題...">
-                </div>
-                <div class="control">
-                    <button class="button is-info" id="send-btn">送出</button>
-                </div>
-            </div>
+        <div id="chat-area" class="box" style="padding:0">
+            <iframe
+                src="http://localhost/chatbot/zDAZ0GYT5OhdjSuD"
+                style="width: 100%; height: 100%; min-height: 700px"
+                frameborder="0"
+                allow="microphone">
+            </iframe>
         </div>
     </div>
 </section>

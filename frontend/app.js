@@ -45,21 +45,6 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
     refreshFiles();
 });
 
-document.getElementById('send-btn').addEventListener('click', async () => {
-    const input = document.getElementById('chat-input');
-    const q = input.value.trim();
-    if (!q) return;
-    addChat('我', q);
-    input.value = '';
-    const res = await fetch('/mm_rag/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', authorization: token },
-        body: JSON.stringify({ query: q })
-    });
-    const data = await res.json();
-    addChat('系統', data.answer);
-});
-
 async function refreshFiles() {
     const res = await fetch('/mm_rag/processing-status', {
         headers: { authorization: token }
@@ -73,14 +58,6 @@ async function refreshFiles() {
         tr.innerHTML = `<td>${info.filename}</td><td>${info.status}</td><td>${info.message}</td>`;
         tbody.appendChild(tr);
     });
-}
-
-function addChat(sender, text) {
-    const chatLog = document.getElementById('chat-log');
-    const div = document.createElement('div');
-    div.innerHTML = `<strong>${sender}:</strong> ${text}`;
-    chatLog.appendChild(div);
-    chatLog.scrollTop = chatLog.scrollHeight;
 }
 
 setInterval(() => {
