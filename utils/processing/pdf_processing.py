@@ -24,7 +24,7 @@ def convert_pdf_to_page_images(
         print(f"📄 PDF 文件大小: {file_size:.2f} MB")
         try:
             print(f"🔄 正在將 {file_name} 轉換為頁面圖片...")
-            images = convert_from_path(full_path, dpi=200, thread_count=20)
+            images = convert_from_path(full_path, dpi=200, thread_count=1)  # Reduced thread_count from 20 to 1
             print(f"✅ 成功讀取 {len(images)} 頁")
         except Exception as e:  # pragma: no cover - conversion can fail in CI
             print(f"❌ 轉換 PDF 頁面時出錯: {str(e)}")
@@ -61,7 +61,7 @@ def extract_pdf_elements(
     elements = partition_pdf(
         filename=full_path,
         extract_images_in_pdf=False,
-        infer_table_structure=True,
+        infer_table_structure=False,  # Changed from True to False
         chunking_strategy="by_title",
         max_characters=8192,
         new_after_n_chars=3800,
@@ -69,7 +69,7 @@ def extract_pdf_elements(
         image_output_dir_path=output_dir,
         extract_image_block_output_dir=output_dir,
         strategy="hi_res",
-        hi_res_model_name="yolox",
+        hi_res_model_name="yolox",  # This might be irrelevant if table structure is not inferred
         languages=["eng", "chi_tra", "chi_tra_vert"],
     )
     return elements

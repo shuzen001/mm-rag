@@ -102,6 +102,12 @@ def convert_pptx_to_pdf(file_path: str, file_name: str) -> str | None:
         if not os.path.exists(full_path):
             print(f"❌ 錯誤: PPTX 文件不存在: {full_path}")
             return None
+        # 檢查文件大小，過大的文件可能導致處理問題
+        file_size = os.path.getsize(full_path) / (1024 * 1024)  # MB
+        if file_size > 30:  # 限制 30MB
+            print(f"❌ PPTX 文件過大 ({file_size:.1f}MB)，跳過轉換")
+            return None
+            
         if not os.access(full_path, os.R_OK):
             print(f"❌ 錯誤: 沒有讀取 PPTX 文件的權限: {full_path}")
             try:
@@ -112,10 +118,20 @@ def convert_pptx_to_pdf(file_path: str, file_name: str) -> str | None:
                 return None
         temp_dir = tempfile.mkdtemp()
         ascii_temp_dir = tempfile.mkdtemp()
-        ascii_file_name = f"pptx_{uuid.uuid4().hex}.pptx"
+        
+        # 使用更安全的文件名處理
+        import re
+        safe_name = re.sub(r'[<>:"/\\|?*&]', '_', os.path.splitext(file_name)[0])
+        ascii_file_name = f"pptx_{safe_name}_{uuid.uuid4().hex[:8]}.pptx"
         ascii_file_path = os.path.join(ascii_temp_dir, ascii_file_name)
+        
         try:
             shutil.copy2(full_path, ascii_file_path)
+            # 驗證複製是否成功
+            if not os.path.exists(ascii_file_path):
+                raise FileNotFoundError("複製後的文件不存在")
+            if os.path.getsize(ascii_file_path) == 0:
+                raise ValueError("複製的文件大小為0")
             print(f"  ✓ 已創建臨時檔案副本: {ascii_file_path}")
         except Exception as e:
             print(f"  ❌ 無法創建檔案副本: {e}")

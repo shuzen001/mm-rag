@@ -84,8 +84,8 @@ retriever_lock = threading.RLock()
 refresh_interval = 15
 user_retrievers = {}
 
-process_pool = ProcessPoolExecutor(max_workers=4)
-processing_semaphore = asyncio.Semaphore(4)
+process_pool = ProcessPoolExecutor(max_workers=2)  # 減少併發數量避免記憶體問題
+processing_semaphore = asyncio.Semaphore(2)
 active_processing_tasks = {}
 
 
@@ -263,26 +263,76 @@ def add_file_to_vector_db(file_path: str, username: str) -> bool:
             logger.error(f"❌ 不支援的檔案類型: {file_ext}")
             return False
 
+        # 檢查文件是否存在
+        if not os.path.exists(file_path):
+            logger.error(f"❌ 檔案不存在: {file_path}")
+            return False
+
+        # 檢查文件大小 (限制為 50MB)
+        file_size = os.path.getsize(file_path) / (1024 * 1024)  # MB
+        if file_size > 50:
+            logger.error(f"❌ 檔案過大 ({file_size:.1f}MB)，請上傳小於 50MB 的檔案")
+            return False
+
         import tempfile
+        import re
+
+        # 清理檔案名稱，移除可能造成問題的字符
+        safe_file_name = re.sub(r'[<>:"/\\|?*&]', '_', file_name)
+        if safe_file_name != file_name:
+            logger.info(f"📝 檔案名稱已清理: {file_name} -> {safe_file_name}")
 
         temp_dir = tempfile.mkdtemp()
-        temp_file_path = os.path.join(temp_dir, file_name)
-        shutil.copy2(file_path, temp_file_path)
+        temp_file_path = os.path.join(temp_dir, safe_file_name)
+        
+        try:
+            # 複製檔案並驗證
+            shutil.copy2(file_path, temp_file_path)
+            if not os.path.exists(temp_file_path):
+                raise FileNotFoundError(f"複製後的檔案不存在: {temp_file_path}")
+            
+            copied_size = os.path.getsize(temp_file_path)
+            if copied_size == 0:
+                raise ValueError("複製的檔案大小為0")
+                
+            logger.info(f"✅ 檔案複製成功: {copied_size / 1024:.1f}KB")
+        except Exception as copy_error:
+            logger.error(f"❌ 檔案複製失敗: {copy_error}")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return False
 
         user_paths = get_user_paths(username)
-        result = process_single_file(
-            file_name, temp_dir, database_dir=user_paths["database_dir"]
-        )  # Assumes this util is generic
+        
+        try:
+            result = process_single_file(
+                safe_file_name, temp_dir, database_dir=user_paths["database_dir"]
+            )
+        except Exception as process_error:
+            logger.error(f"❌ 檔案處理過程中出錯: {process_error}")
+            import traceback
+            traceback.print_exc()
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return False
 
         if not result:
-            logger.error(f"❌ 檔案處理失敗: {file_name}")
-            shutil.rmtree(temp_dir)
+            logger.error(f"❌ 檔案處理失敗: {safe_file_name}")
+            shutil.rmtree(temp_dir, ignore_errors=True)
             return False
 
         texts = result["texts"]
         tables = result["tables"]
         page_summaries = result["page_summaries"]
         page_identifiers = result["page_identifiers"]
+
+        # 清理臨時文件
+        temp_files = result.get("temp_files", [])
+        for temp_file in temp_files:
+            try:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+                    logger.info(f"✅ 已清理臨時文件: {temp_file}")
+            except Exception as cleanup_error:
+                logger.warning(f"⚠️ 清理臨時文件失敗: {cleanup_error}")
 
         joined_texts = " ".join(texts)
         text_splitter = NLTKTextSplitter()
@@ -336,7 +386,7 @@ def add_file_to_vector_db(file_path: str, username: str) -> bool:
             embedding_function=text_embedding_3_large,
         )
 
-        shutil.rmtree(temp_dir)
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
         logger.info(f"✅ 檔案 {file_name} 成功添加到向量資料庫 (FAISS)")
         return True
@@ -347,7 +397,7 @@ def add_file_to_vector_db(file_path: str, username: str) -> bool:
 
         traceback.print_exc()
         if "temp_dir" in locals() and os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
+            shutil.rmtree(temp_dir, ignore_errors=True)
         return False
 
 
@@ -483,9 +533,37 @@ async def process_document_async(
                 return
 
             loop = asyncio.get_event_loop()
-            success = await loop.run_in_executor(
-                process_pool, process_file_in_subprocess, (full_file_path, username)
-            )
+            
+            # 設置更長的超時時間，根據文件類型調整
+            timeout_seconds = 600 if file_ext == ".pdf" else 300  # PDF文件給更多時間
+            
+            try:
+                success = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        process_pool, process_file_in_subprocess, (full_file_path, username)
+                    ),
+                    timeout=timeout_seconds
+                )
+            except asyncio.TimeoutError:
+                logger.error(f"❌ 文件處理超時 ({timeout_seconds}秒): {file_name}")
+                update_document_status(
+                    document_id,
+                    username,
+                    "failed",
+                    f"Document processing timeout after {timeout_seconds} seconds",
+                    file_name,
+                )
+                return
+            except Exception as executor_error:
+                logger.error(f"❌ 執行器錯誤: {executor_error}")
+                update_document_status(
+                    document_id,
+                    username,
+                    "failed",
+                    f"Executor error: {str(executor_error)}",
+                    file_name,
+                )
+                return
 
             if success:
                 update_document_status(
@@ -550,6 +628,9 @@ async def upload_document(
         raise HTTPException(status_code=401, detail="Unauthorized")
     username = user_sessions[authorization]
     user_paths = get_user_paths(username)
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename provided")
 
     document_id = str(uuid.uuid4())
     os.makedirs(user_paths["upload_dir"], exist_ok=True)
@@ -717,6 +798,7 @@ async def reset_system(
         logger.info("🔄 开始重置系统 (FAISS)...")
         with retriever_lock:
             # 1. Clear uploaded files
+            upload_files_count = 0
             try:
                 if os.path.exists(user_paths["upload_dir"]):
                     upload_files = [
@@ -724,11 +806,10 @@ async def reset_system(
                         for f in os.listdir(user_paths["upload_dir"])
                         if os.path.isfile(os.path.join(user_paths["upload_dir"], f))
                     ]
+                    upload_files_count = len(upload_files)
                     for file_name in upload_files:
                         os.remove(os.path.join(user_paths["upload_dir"], file_name))
-                logger.info(
-                    f"✅ 已删除 {len(upload_files) if 'upload_files' in locals() else 0} 个上传文件"
-                )
+                logger.info(f"✅ 已删除 {upload_files_count} 个上传文件")
             except Exception as e:
                 raise HTTPException(
                     status_code=500, detail=f"Failed to clear uploaded files: {str(e)}"
@@ -788,7 +869,7 @@ async def reset_system(
             "timestamp": time.time(),
         }
     except Exception as e:
-        logger.error(f"❌ 系统重置过程中出错 (FAISS): {str(e)}")
+        logger.error(f"❌ 系統重置过程中出错 (FAISS): {str(e)}")
         import traceback
 
         traceback.print_exc()
