@@ -46,17 +46,39 @@ document.getElementById('upload-btn').addEventListener('click', async () => {
 });
 
 async function refreshFiles() {
-    const res = await fetch('/mm_rag/processing-status', {
-        headers: { authorization: token }
+    const [statusRes, filesRes] = await Promise.all([
+        fetch('/mm_rag/processing-status', { headers: { authorization: token } }),
+        fetch('/mm_rag/files', { headers: { authorization: token } })
+    ]);
+    if (!statusRes.ok || !filesRes.ok) return;
+    const statusData = await statusRes.json();
+    const fileData = await filesRes.json();
+    const statusMap = {};
+    Object.values(statusData.documents).forEach((info) => {
+        statusMap[info.filename] = { status: info.status, message: info.message };
     });
-    if (!res.ok) return;
-    const data = await res.json();
+
     const tbody = document.querySelector('#files-table tbody');
     tbody.innerHTML = '';
-    Object.entries(data.documents).forEach(([id, info]) => {
+    fileData.files.forEach((name) => {
+        const s = statusMap[name] || { status: 'uploaded', message: '' };
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${info.filename}</td><td>${info.status}</td><td>${info.message}</td>`;
+        tr.innerHTML = `<td>${name}</td><td>${s.status}</td><td>${s.message || ''}</td>` +
+            `<td><button class="delete-btn" data-file="${name}">刪除</button></td>`;
         tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.delete-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const form = new FormData();
+            form.append('file_name', btn.dataset.file);
+            await fetch('/mm_rag/delete', {
+                method: 'POST',
+                headers: { authorization: token },
+                body: form
+            });
+            refreshFiles();
+        });
     });
 }
 

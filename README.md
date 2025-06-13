@@ -92,7 +92,15 @@ uvicorn app:app --host 0.0.0.0 --port 1230 --reload
 
 - `/mm_rag/reset` API 可一鍵清空所有上傳文件、FAISS 向量庫、docstore 映射。
 
-### 6️⃣ 使用網頁介面
+### 6️⃣ 刪除單一文件
+
+- `/mm_rag/delete` API 可移除指定檔名相關的向量與圖片資料。
+
+### 7️⃣ 查看已上傳檔案
+
+- `/mm_rag/files` 會列出目前使用者上傳的所有檔名。
+
+### 8️⃣ 使用網頁介面
 
 1. 啟動 API 後，前往 `http://localhost:1230/mm_rag/web/` 會看到以 `react-login-page` 風格打造的登入畫面。
 2. 依照 `database/users.json` 中的帳號密碼登入。
@@ -121,6 +129,15 @@ uvicorn app:app --host 0.0.0.0 --port 1230 --reload
 ### 4. 重置系統
 - `POST /mm_rag/reset`
 - 回傳：重置狀態、訊息、時間戳
+
+### 5. 刪除單一文件
+- `POST /mm_rag/delete`
+- 參數：`file_name` (str)
+- 回傳：刪除結果
+
+### 6. 查看已上傳檔案
+- `GET /mm_rag/files`
+- 回傳：檔名列表
 
 ---
 
