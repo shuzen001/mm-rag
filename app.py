@@ -351,6 +351,77 @@ def add_file_to_vector_db(file_path: str, username: str) -> bool:
         return False
 
 
+# Helper to list uploaded files for a user
+def list_user_files(username: str) -> list[str]:
+    """Return a list of filenames a user has uploaded."""
+    user_paths = get_user_paths(username)
+    if not os.path.exists(user_paths["upload_dir"]):
+        return []
+    return [
+        f
+        for f in os.listdir(user_paths["upload_dir"])
+        if os.path.isfile(os.path.join(user_paths["upload_dir"], f))
+    ]
+
+
+# New helper to delete all vector and docstore entries for a given file
+def delete_file_from_vector_db(file_name: str, username: str) -> bool:
+    from utils.vector_store import FAISS
+
+    user_paths = get_user_paths(username)
+    try:
+        doc_ids_to_remove = []
+        if os.path.exists(user_paths["docstore_mapping_path"]):
+            with open(user_paths["docstore_mapping_path"], "r", encoding="utf-8") as f:
+                mapping = json.load(f)
+        else:
+            mapping = {}
+
+        for doc_id, info in list(mapping.items()):
+            data_str = json.dumps(info)
+            if file_name in data_str:
+                doc_ids_to_remove.append(doc_id)
+                mapping.pop(doc_id)
+
+        with open(user_paths["docstore_mapping_path"], "w", encoding="utf-8") as f:
+            json.dump(mapping, f, ensure_ascii=False, indent=4)
+
+        faiss_file = os.path.join(
+            user_paths["faiss_index_path"], f"{FAISS_INDEX_NAME}.faiss"
+        )
+        if os.path.exists(faiss_file):
+            vs = FAISS.load_local(
+                user_paths["faiss_index_path"],
+                text_embedding_3_large,
+                FAISS_INDEX_NAME,
+                allow_dangerous_deserialization=True,
+            )
+            if hasattr(vs, "delete"):
+                try:
+                    vs.delete(doc_ids_to_remove)
+                except Exception:
+                    try:
+                        vs.delete(ids=doc_ids_to_remove)
+                    except Exception as e:
+                        logger.error(f"Delete failed: {e}")
+            vs.save_local(user_paths["faiss_index_path"], FAISS_INDEX_NAME)
+
+        fig_dir = os.path.join(
+            user_paths["figure_path"], os.path.splitext(file_name)[0]
+        )
+        if os.path.exists(fig_dir):
+            shutil.rmtree(fig_dir)
+
+        upload_file = os.path.join(user_paths["upload_dir"], file_name)
+        if os.path.exists(upload_file):
+            os.remove(upload_file)
+
+        return True
+    except Exception as e:
+        logger.error(f"Failed to delete {file_name}: {e}")
+        return False
+
+
 # Helper functions (remain the same)
 def update_document_status(
     document_id: str,
@@ -724,6 +795,39 @@ async def reset_system(
         raise HTTPException(
             status_code=500, detail=f"System reset failed (FAISS): {str(e)}"
         )
+
+
+@app.get("/files")
+async def get_uploaded_files(
+    authorization: str | None = Header(None), token: str | None = Cookie(None)
+):
+    """Return a list of filenames uploaded by the current user."""
+    if not authorization:
+        authorization = token
+    if not authorization or authorization not in user_sessions:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    username = user_sessions[authorization]
+    return {"files": list_user_files(username)}
+
+
+@app.post("/delete")
+async def delete_document(
+    file_name: str = Form(...),
+    authorization: str | None = Header(None),
+    token: str | None = Cookie(None),
+):
+    """Delete a single document from the user's vector DB."""
+    if not authorization:
+        authorization = token
+    if not authorization or authorization not in user_sessions:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    username = user_sessions[authorization]
+    with retriever_lock:
+        success = delete_file_from_vector_db(file_name, username)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to delete file")
+        refresh_retriever(username)
+    return {"status": "success", "message": f"{file_name} deleted"}
 
 
 # End of API routes
