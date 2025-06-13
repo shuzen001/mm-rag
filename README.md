@@ -1,6 +1,6 @@
 # 📄 多模態 RAG 系統 (MM-RAG)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 本專案是一個基於 FastAPI、LangChain 與 FAISS 的多模態檢索增強生成（MM-RAG）系統。支援 PDF、PPTX、DOCX 等文件自動抽取文字、表格、圖片，並以 GPT-4o 進行摘要，所有內容向量化後存入 FAISS，支援語意檢索與問答。
 
@@ -162,4 +162,4 @@ print(res.json())
 
 ## 📜 授權條款
 
-本專案採用 [MIT License](https://opensource.org/licenses/MIT) 授權。
+本專案採用 [MIT License](LICENSE) 授權。

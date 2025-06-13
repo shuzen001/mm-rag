@@ -247,7 +247,7 @@ async def login(credentials: LoginRequest, response: Response):
 
 # Modified for FAISS
 def add_file_to_vector_db(file_path: str, username: str) -> bool:
-    from utils.extract_file_utils import process_single_file
+    from utils.processing import process_single_file
     from utils.summarize import generate_img_summaries, generate_text_summaries
     from utils.vector_store import (
         create_multi_vector_retriever,
