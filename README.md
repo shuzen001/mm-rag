@@ -1,6 +1,6 @@
 # 📄 多模態 RAG 系統 (MM-RAG)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 本專案是一個基於 FastAPI、LangChain 與 FAISS 的多模態檢索增強生成（MM-RAG）系統。支援 PDF、PPTX、DOCX 等文件自動抽取文字、表格、圖片，並以 GPT-4o 進行摘要，所有內容向量化後存入 FAISS，支援語意檢索與問答。
 
@@ -66,24 +66,6 @@ mm-rag/
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-## 🧪 單元測試
-
-執行所有測試：
-
-```bash
-pytest -q
-```
-
-若要以真實 PDF 執行 `test_convert_file_to_markdown_real_pdf`，請先安裝 `docling`
-相關依賴，並設定環境變數 `DOC_TEST_PDF` 為你的 PDF 路徑：
-
-```bash
-DOC_TEST_PDF=/path/to/your.pdf pytest -q tests/test_docling_markdown.py::test_convert_file_to_markdown_real_pdf
-```
-
-未設定此變數時，整合測試會自動被跳過。
-
----
 
 ## 🚀 啟動與使用流程
 
@@ -95,42 +77,67 @@ uvicorn app:app --host 0.0.0.0 --port 1230 --reload
 
 ### 2️⃣ 上傳文件
 
-- 透過 `/upload` API 上傳 PDF、PPTX、DOCX 檔案，支援背景處理。
+- 透過 `/mm_rag/upload` API 上傳 PDF、PPTX、DOCX 檔案，支援背景處理。
 - 上傳後自動抽取內容、摘要並存入 FAISS。
 
 ### 3️⃣ 查詢問答
 
-- 使用 `/query` API 提問，系統會檢索最相關內容並組合多模態上下文給 GPT-4o 回答。
+- 使用 `/mm_rag/query` API 提問，系統會檢索最相關內容並組合多模態上下文給 GPT-4o 回答。
 
 ### 4️⃣ 查詢處理狀態
 
-- `/processing-status` 可查詢所有文件處理進度。
+- `/mm_rag/processing-status` 可查詢所有文件處理進度。
 
 ### 5️⃣ 重置系統
 
-- `/reset` API 可一鍵清空所有上傳文件、FAISS 向量庫、docstore 映射。
+- `/mm_rag/reset` API 可一鍵清空所有上傳文件、FAISS 向量庫、docstore 映射。
+
+### 6️⃣ 刪除單一文件
+
+- `/mm_rag/delete` API 可移除指定檔名相關的向量與圖片資料。
+
+### 7️⃣ 查看已上傳檔案
+
+- `/mm_rag/files` 會列出目前使用者上傳的所有檔名。
+
+### 8️⃣ 使用網頁介面
+
+1. 啟動 API 後，前往 `http://localhost:1230/mm_rag/web/` 會看到以 `react-login-page` 風格打造的登入畫面。
+2. 依照 `database/users.json` 中的帳號密碼登入。
+3. 登入後可在頁面上傳文件、查看處理狀態，QA 區域會以 iframe 嵌入 `http://localhost/chatbot/zDAZ0GYT5OhdjSuD`。
+   登入成功時，伺服器會在瀏覽器寫入 `token` cookie，嵌入的聊天頁面也能自動帶上此憑證向 API 發送查詢。
+4. 所有操作均會與該使用者的專屬資料庫同步。
 
 ---
 
 ## 🛠️ API 路由說明
 
 ### 1. 上傳文件
-- `PUT /upload`
+- `PUT /mm_rag/upload`
 - 參數：`file` (UploadFile)，`process_immediately` (bool, 預設 True)
 - 回傳：文件 ID、檔名、狀態、訊息
 
 ### 2. 查詢問答
-- `POST /query`
+- `POST /mm_rag/query`
 - 參數：`query` (str)，`top_k` (int, 預設 5)
 - 回傳：`answer` (str)，`processing_time` (float)
 
 ### 3. 查詢處理狀態
-- `GET /processing-status`
+- `GET /mm_rag/processing-status`
 - 回傳：所有文件的處理狀態、進度
 
 ### 4. 重置系統
-- `POST /reset`
+- `POST /mm_rag/reset`
 - 回傳：重置狀態、訊息、時間戳
+
+### 5. 刪除單一文件
+- `POST /mm_rag/delete`
+- 參數：`file_name` (str)
+- 回傳：刪除結果
+
+### 6. 查看已上傳檔案
+- `GET /mm_rag/files`
+- 回傳：檔名列表
 
 ---
 
@@ -141,20 +148,20 @@ import requests
 
 # 上傳文件
 with open('files/your.pdf', 'rb') as f:
-    res = requests.put('http://localhost:1230/upload', files={'file': f})
+    res = requests.put('http://localhost:1230/mm_rag/upload', files={'file': f})
     print(res.json())
 
 # 查詢問答
 payload = {"query": "請問本文件的重點？"}
-res = requests.post('http://localhost:1230/query', json=payload)
+res = requests.post('http://localhost:1230/mm_rag/query', json=payload)
 print(res.json())
 
 # 查詢處理狀態
-res = requests.get('http://localhost:1230/processing-status')
+res = requests.get('http://localhost:1230/mm_rag/processing-status')
 print(res.json())
 
 # 重置系統
-res = requests.post('http://localhost:1230/reset')
+res = requests.post('http://localhost:1230/mm_rag/reset')
 print(res.json())
 ```
 
@@ -172,4 +179,4 @@ print(res.json())
 
 ## 📜 授權條款
 
-本專案採用 [MIT License](https://opensource.org/licenses/MIT) 授權。
+本專案採用 [MIT License](LICENSE) 授權。

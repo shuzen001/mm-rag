@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MM-RAG 前端</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<section id="login-section" class="login-page7 section">
+    <div class="login-page7-inner">
+        <article>
+            <header>
+                <div><span>MM-RAG</span></div>
+            </header>
+            <label>
+                <span class="login-page7-label">使用者名稱</span>
+                <input type="text" id="username" placeholder="Username">
+            </label>
+            <label>
+                <span class="login-page7-label">密碼</span>
+                <input type="password" id="password" placeholder="Password">
+            </label>
+            <section>
+                <button id="login-btn">登入</button>
+            </section>
+            <p class="help is-danger" id="login-error" style="display:none"></p>
+        </article>
+    </div>
+    <ul class="login-page7-bubbles">
+        <li></li><li></li><li></li><li></li><li></li>
+        <li></li><li></li><li></li><li></li><li></li>
+    </ul>
+</section>
+<section class="section" id="main-section" style="display:none">
+    <div class="container">
+        <h1 class="title">MM-RAG 介面</h1>
+        <div id="upload-area" class="box">
+            <h2 class="subtitle">上傳檔案</h2>
+            <div class="file has-name is-fullwidth">
+                <label class="file-label">
+                    <input class="file-input" type="file" id="file-input">
+                    <span class="file-cta">
+                        <span class="file-icon"><i class="fas fa-upload"></i></span>
+                        <span class="file-label">選擇檔案…</span>
+                    </span>
+                    <span class="file-name" id="file-name">未選擇檔案</span>
+                </label>
+            </div>
+            <button class="button is-link" id="upload-btn" style="margin-top:10px">上傳並處理</button>
+        </div>
+        <div id="files-area" class="box">
+            <h2 class="subtitle">已上傳檔案</h2>
+            <table class="table is-fullwidth" id="files-table">
+                <thead><tr><th>檔名</th><th>狀態</th><th>訊息</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="chat-area" class="box" style="padding:0">
+            <iframe
+                src="http://localhost/chatbot/zDAZ0GYT5OhdjSuD"
+                style="width: 100%; height: 100%; min-height: 700px"
+                frameborder="0"
+                allow="microphone">
+            </iframe>
+        </div>
+    </div>
+</section>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/js/all.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

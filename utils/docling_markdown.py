@@ -9,7 +9,10 @@ from typing import List
 from docling.document_converter import DocumentConverter
 from docling_core.types.doc.base import ImageRefMode
 
+from utils.logging_config import get_logger
 from utils.summarize import encode_image
+
+logger = get_logger(__name__)
 
 
 def _summarize_image(image_path: str) -> str:
@@ -30,17 +33,22 @@ def _summarize_image(image_path: str) -> str:
             ],
         }
     ]
-    # return llm.invoke(messages).content.strip()
-    return "這是一張圖片的摘要。"  # Placeholder for actual LLM response
+    try:
+        return llm.invoke(messages).content.strip()
+    except Exception as e:
+        logger.error(f"[docling_markdown] Error summarizing image {image_path}: {e}")
+        return "無法生成圖片摘要"
 
 
 def convert_file_to_markdown(path: str) -> str:
     """Convert a document to Markdown and insert image summaries in-place."""
     converter = DocumentConverter()
     result = converter.convert(path)
-    doc = result.document  # Changed from result.legacy_document
+    doc = getattr(result, "document", getattr(result, "legacy_document", None))
+    if doc is None:
+        raise AttributeError("Result object has no document")
     # print(f"doc object: {doc}")
-    # print(f"type of doc: {type(doc)}")  
+    # print(f"type of doc: {type(doc)}")
     # if hasattr(doc, 'pages'):
     #     print(f"doc.pages: {doc.pages}")
     #     print(f"type of doc.pages: {type(doc.pages)}")
@@ -50,27 +58,26 @@ def convert_file_to_markdown(path: str) -> str:
     # else:
     #     print("doc object has no 'pages' attribute")
     placeholder = "<!-- image -->"
-    markdown = doc.export_to_markdown(
-        image_placeholder=placeholder
-    )
+    markdown = doc.export_to_markdown(image_placeholder=placeholder)
 
     if placeholder not in markdown:
         return markdown
 
     # New logic to extract image paths from document pages
     image_paths: List[Path] = []
-    if hasattr(doc, 'pages') and doc.pages:
+    if hasattr(doc, "pages") and doc.pages:
         for page in doc.pages:
-            if hasattr(page, 'images') and page.images:
-                for image_file_info in page.images: # Assuming page.images contains objects/dicts with path info
-                    # Attempt to get path, assuming image_file_info has a 'path' attribute or is the path itself
-                    path_attr = getattr(image_file_info, 'path', None)
+            if hasattr(page, "images") and page.images:
+                for image_file_info in page.images:
+                    path_attr = getattr(image_file_info, "path", None)
                     if path_attr:
                         image_paths.append(Path(path_attr))
-                    elif isinstance(image_file_info, (str, Path)): # Fallback if image_file_info is a path string/object
+                    elif isinstance(image_file_info, (str, Path)):
                         image_paths.append(Path(image_file_info))
-    
-    images = image_paths # Use the collected image_paths
+    elif hasattr(doc, "_list_images_on_disk"):
+        image_paths.extend(doc._list_images_on_disk())
+
+    images = image_paths  # Use the collected image_paths
 
     for img_path in images:
         summary = _summarize_image(str(img_path))
