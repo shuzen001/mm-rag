@@ -7,7 +7,6 @@ import uuid
 from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
-import re
 from io import BytesIO
 from typing import Any, Dict, List, Optional, Tuple  # Added Any, Optional
 
@@ -300,15 +299,6 @@ def plt_img_base64(img_base64):
     image_html = f'<img src="data:image/jpeg;base64,{img_base64}" />'
     # Display the image by rendering the HTML
     display(HTML(image_html))
-
-
-def looks_like_base64(sb):
-    """
-    判斷字串是否為 base64 格式。
-    sb: 字串
-    回傳：True/False
-    """
-    return re.match("^[A-Za-z0-9+/]+[=]{0,2}$", sb) is not None
 
 
 def is_image_data(b64data):
