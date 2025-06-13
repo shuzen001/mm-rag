@@ -15,15 +15,7 @@ from concurrent.futures import ProcessPoolExecutor
 from typing import Optional
 
 import uvicorn
-from fastapi import (
-    Cookie,
-    FastAPI,
-    File,
-    Form,
-    Header,
-    HTTPException,
-    UploadFile,
-)
+from fastapi import Cookie, FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -250,11 +242,11 @@ async def login(credentials: LoginRequest, response: Response):
 
 # Modified for FAISS
 def add_file_to_vector_db(file_path: str, username: str) -> bool:
-    from utils.extract_file_utils import process_single_file
+    from utils.processing import process_single_file
     from utils.summarize import generate_img_summaries, generate_text_summaries
-    from utils.vector_store import (  # This util needs to be FAISS-aware
+    from utils.vector_store import (
         create_multi_vector_retriever,
-    )
+    )  # This util needs to be FAISS-aware
 
     print(f"\n🔄 處理上傳檔案 (FAISS): {file_path}")
 
