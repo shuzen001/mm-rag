@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import time
 
 from utils.logging_config import get_logger
 
@@ -326,7 +327,13 @@ if __name__ == "__main__":
     # Optional: Check what the retriever fetches directly
 
     logger.info("--- Retriever Output ---")
+    faiss_index_size = getattr(vectorstore.index, "ntotal", "unknown")
+    start_time = time.perf_counter()
     retrieved_docs = retriever_multi_vector_img.invoke(query)
+    elapsed = time.perf_counter() - start_time
+    logger.info(
+        f"Retrieved {len(retrieved_docs)} documents in {elapsed:.2f}s (FAISS index size: {faiss_index_size})"
+    )
     for i, item in enumerate(retrieved_docs):
         logger.info(f"--- Item {i+1} ---")
 
