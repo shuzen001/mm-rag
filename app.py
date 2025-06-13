@@ -15,7 +15,15 @@ from concurrent.futures import ProcessPoolExecutor
 from typing import Optional
 
 import uvicorn
-from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import (
+    Cookie,
+    FastAPI,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    UploadFile,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -213,8 +221,11 @@ async def startup_event():
     print("✅ MM-RAG 系統 (FAISS) 初始化完成，準備接收請求")
 
 
+from fastapi import Response
+
+
 @app.post("/login")
-async def login(credentials: LoginRequest):
+async def login(credentials: LoginRequest, response: Response):
     user_info = users.get(credentials.username)
     if not user_info or user_info.get("password") != credentials.password:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -233,6 +244,7 @@ async def login(credentials: LoginRequest):
         with open(paths["docstore_mapping_path"], "w", encoding="utf-8") as f:
             json.dump({}, f, ensure_ascii=False, indent=4)
     refresh_retriever(credentials.username)
+    response.set_cookie(key="token", value=token, httponly=False, path="/")
     return {"token": token}
 
 
@@ -460,7 +472,10 @@ async def upload_document(
     file: UploadFile = File(...),
     process_immediately: bool = Form(True),
     authorization: str | None = Header(None),
+    token: str | None = Cookie(None),
 ):
+    if not authorization:
+        authorization = token
     if not authorization or authorization not in user_sessions:
         raise HTTPException(status_code=401, detail="Unauthorized")
     username = user_sessions[authorization]
@@ -507,7 +522,11 @@ async def upload_document(
 
 
 @app.get("/processing-status")
-async def get_processing_status(authorization: str | None = Header(None)):
+async def get_processing_status(
+    authorization: str | None = Header(None), token: str | None = Cookie(None)
+):
+    if not authorization:
+        authorization = token
     if not authorization or authorization not in user_sessions:
         raise HTTPException(status_code=401, detail="Unauthorized")
     username = user_sessions[authorization]
@@ -525,7 +544,13 @@ async def get_processing_status(authorization: str | None = Header(None)):
 
 
 @app.post("/query", response_model=QueryResponse)
-async def query(query_request: QueryRequest, authorization: str | None = Header(None)):
+async def query(
+    query_request: QueryRequest,
+    authorization: str | None = Header(None),
+    token: str | None = Cookie(None),
+):
+    if not authorization:
+        authorization = token
     if not authorization or authorization not in user_sessions:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -609,7 +634,11 @@ async def query(query_request: QueryRequest, authorization: str | None = Header(
 
 
 @app.post("/reset")
-async def reset_system(authorization: str | None = Header(None)):
+async def reset_system(
+    authorization: str | None = Header(None), token: str | None = Cookie(None)
+):
+    if not authorization:
+        authorization = token
     if not authorization or authorization not in user_sessions:
         raise HTTPException(status_code=401, detail="Unauthorized")
     username = user_sessions[authorization]

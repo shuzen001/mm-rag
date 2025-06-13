@@ -97,6 +97,7 @@ uvicorn app:app --host 0.0.0.0 --port 1230 --reload
 1. 啟動 API 後，前往 `http://localhost:1230/mm_rag/web/` 會看到以 `react-login-page` 風格打造的登入畫面。
 2. 依照 `database/users.json` 中的帳號密碼登入。
 3. 登入後可在頁面上傳文件、查看處理狀態，QA 區域會以 iframe 嵌入 `http://localhost/chatbot/zDAZ0GYT5OhdjSuD`。
+   登入成功時，伺服器會在瀏覽器寫入 `token` cookie，嵌入的聊天頁面也能自動帶上此憑證向 API 發送查詢。
 4. 所有操作均會與該使用者的專屬資料庫同步。
 
 ---
