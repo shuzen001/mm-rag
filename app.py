@@ -178,7 +178,7 @@ def refresh_retriever(username: str):
                 id_key="doc_id",
             )
 
-            chain = multi_modal_rag_chain(retriever)
+            chain = multi_modal_rag_chain(retriever, user_paths["figure_path"])
 
             user_retrievers[username] = {
                 "retriever": retriever,

@@ -32,7 +32,7 @@ DOCSTORE_MAPPING_PATH = f"{DATABASE_DIR}/docstore_mapping.json"
 IMAGE_FIGURES_PATH = f"{DATABASE_DIR}/figures/"
 
 
-def split_image_text_types(docs):
+def split_image_text_types(docs, figure_dir):
     """
     將 MultiVectorRetriever 檢索回來的原始內容分為圖片 (base64) 與文字/表格。
     docs: 檢索回來的文件列表 (包含原始文字、表格字串，或各種類型的字典)
@@ -61,8 +61,9 @@ def split_image_text_types(docs):
                 "filename" in doc_content and "type" not in doc_content
             ):
                 img_filename = doc_content["filename"]
-                # 如果檔名包含文檔子資料夾路徑
-                img_path = os.path.join(IMAGE_FIGURES_PATH, img_filename)
+                # 文件名是相對於用戶資料夾的路徑
+                base_dir = os.path.dirname(figure_dir)
+                img_path = os.path.join(base_dir, img_filename)
 
                 # 檢查圖片是否存在
                 if os.path.exists(img_path):
@@ -209,7 +210,7 @@ def img_prompt_func(data_dict):
     return [HumanMessage(content=messages)]
 
 
-def multi_modal_rag_chain(retriever):
+def multi_modal_rag_chain(retriever, figure_dir=IMAGE_FIGURES_PATH):
     """
     建立多模態 RAG 推理鏈。
     retriever: 多向量檢索器
@@ -222,7 +223,8 @@ def multi_modal_rag_chain(retriever):
     # RAG pipeline
     chain = (
         {
-            "context": retriever | RunnableLambda(split_image_text_types),
+            "context": retriever
+            | RunnableLambda(lambda docs: split_image_text_types(docs, figure_dir)),
             "question": RunnablePassthrough(),
         }
         | RunnableLambda(img_prompt_func)
