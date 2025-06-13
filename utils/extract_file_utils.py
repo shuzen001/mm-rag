@@ -6,6 +6,10 @@ import subprocess
 import tempfile
 import uuid
 
+from utils.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 import nltk
 from langchain_text_splitters import CharacterTextSplitter
 from pdf2image import convert_from_path
@@ -36,24 +40,24 @@ def convert_pdf_to_page_images(file_path, file_name, database_dir="./database"):
         # 完整的PDF路徑
         full_path = os.path.join(file_path, file_name)
 
-        print(f"🔄 開始處理 PDF: {full_path}")
+        logger.info(f"🔄 開始處理 PDF: {full_path}")
 
         # 檢查文件是否存在
         if not os.path.exists(full_path):
-            print(f"❌ 錯誤: PDF 文件不存在: {full_path}")
+            logger.error(f"❌ 錯誤: PDF 文件不存在: {full_path}")
             return []
 
         # 檢查文件大小
         file_size = os.path.getsize(full_path) / (1024 * 1024)  # 轉換為 MB
-        print(f"📄 PDF 文件大小: {file_size:.2f} MB")
+        logger.info(f"📄 PDF 文件大小: {file_size:.2f} MB")
 
         # 轉換PDF頁面為圖片 (dpi值可以調整，影響圖片質量和大小)
         try:
-            print(f"🔄 正在將 {file_name} 轉換為頁面圖片...")
+            logger.info(f"🔄 正在將 {file_name} 轉換為頁面圖片...")
             images = convert_from_path(full_path, dpi=200, thread_count=20)
-            print(f"✅ 成功讀取 {len(images)} 頁")
+            logger.info(f"✅ 成功讀取 {len(images)} 頁")
         except Exception as e:
-            print(f"❌ 轉換 PDF 頁面時出錯: {str(e)}")
+            logger.error(f"❌ 轉換 PDF 頁面時出錯: {str(e)}")
             # 嘗試打印更詳細的錯誤信息
             import traceback
 
@@ -69,12 +73,12 @@ def convert_pdf_to_page_images(file_path, file_name, database_dir="./database"):
                 image.save(image_path, "JPEG")
                 page_image_paths.append((page_num, image_path))
             except Exception as e:
-                print(f"❌ 儲存頁面 {i+1} 時出錯: {str(e)}")
+                logger.error(f"❌ 儲存頁面 {i+1} 時出錯: {str(e)}")
 
-        print(f"✅ 已將 {file_name} 的 {len(images)} 頁轉換為圖片")
+        logger.info(f"✅ 已將 {file_name} 的 {len(images)} 頁轉換為圖片")
         return page_image_paths
     except Exception as e:
-        print(f"❌ 處理 PDF 文件 {file_name} 時發生未預期的錯誤: {str(e)}")
+        logger.error(f"❌ 處理 PDF 文件 {file_name} 時發生未預期的錯誤: {str(e)}")
         # 嘗試打印更詳細的錯誤信息
         import traceback
 
@@ -99,24 +103,24 @@ def convert_pptx_to_slide_images(file_path, file_name, database_dir="./database"
         # 完整的 PPTX 路徑
         full_path = os.path.join(file_path, file_name)
 
-        print(f"🔄 開始處理 PPTX: {full_path}")
+        logger.info(f"🔄 開始處理 PPTX: {full_path}")
 
         # 檢查文件是否存在
         if not os.path.exists(full_path):
-            print(f"❌ 錯誤: PPTX 文件不存在: {full_path}")
+            logger.error(f"❌ 錯誤: PPTX 文件不存在: {full_path}")
             return []
 
         # 檢查文件大小
         file_size = os.path.getsize(full_path) / (1024 * 1024)  # 轉換為 MB
-        print(f"📄 PPTX 文件大小: {file_size:.2f} MB")
+        logger.info(f"📄 PPTX 文件大小: {file_size:.2f} MB")
 
         # 載入 PPTX 文件
         try:
-            print(f"🔄 正在載入 {file_name}...")
+            logger.info(f"🔄 正在載入 {file_name}...")
             presentation = Presentation(full_path)
-            print(f"✅ 成功載入 {len(presentation.slides)} 張幻燈片")
+            logger.info(f"✅ 成功載入 {len(presentation.slides)} 張幻燈片")
         except Exception as e:
-            print(f"❌ 載入 PPTX 文件時出錯: {str(e)}")
+            logger.error(f"❌ 載入 PPTX 文件時出錯: {str(e)}")
             import traceback
 
             traceback.print_exc()
@@ -184,18 +188,18 @@ def convert_pptx_to_slide_images(file_path, file_name, database_dir="./database"
                 # 保存圖像
                 slide_image.save(slide_path, "JPEG")
                 slide_image_paths.append((slide_num, slide_path))
-                print(f"  ✓ 已儲存幻燈片 {slide_num} 圖像")
+                logger.info(f"  ✓ 已儲存幻燈片 {slide_num} 圖像")
 
             except Exception as e:
-                print(f"❌ 處理幻燈片 {i+1} 時出錯: {str(e)}")
+                logger.error(f"❌ 處理幻燈片 {i+1} 時出錯: {str(e)}")
 
-        print(
+        logger.info(
             f"✅ 已將 {file_name} 的 {len(slide_image_paths)}/{len(presentation.slides)} 張幻燈片轉換為圖片"
         )
         return slide_image_paths
 
     except Exception as e:
-        print(f"❌ 處理 PPTX 文件 {file_name} 時發生未預期的錯誤: {str(e)}")
+        logger.error(f"❌ 處理 PPTX 文件 {file_name} 時發生未預期的錯誤: {str(e)}")
         import traceback
 
         traceback.print_exc()
@@ -215,18 +219,18 @@ def convert_pptx_to_pdf(file_path, file_name):
 
         # 檢查檔案是否存在
         if not os.path.exists(full_path):
-            print(f"❌ 錯誤: PPTX 文件不存在: {full_path}")
+            logger.error(f"❌ 錯誤: PPTX 文件不存在: {full_path}")
             return None
 
         # 檢查檔案權限
         if not os.access(full_path, os.R_OK):
-            print(f"❌ 錯誤: 沒有讀取 PPTX 文件的權限: {full_path}")
+            logger.error(f"❌ 錯誤: 沒有讀取 PPTX 文件的權限: {full_path}")
             try:
                 # 嘗試修改權限
                 os.chmod(full_path, 0o644)
-                print(f"  ✓ 已嘗試修改檔案權限")
+                logger.info(f"  ✓ 已嘗試修改檔案權限")
             except Exception as e:
-                print(f"  ⚠️ 無法修改檔案權限: {e}")
+                logger.info(f"  ⚠️ 無法修改檔案權限: {e}")
                 return None
 
         # 設定臨時目錄 (用於存放轉換後的 PDF)
@@ -242,9 +246,9 @@ def convert_pptx_to_pdf(file_path, file_name):
         # 複製原始檔案到 ASCII 檔名的版本
         try:
             shutil.copy2(full_path, ascii_file_path)
-            print(f"  ✓ 已創建臨時檔案副本: {ascii_file_path}")
+            logger.info(f"  ✓ 已創建臨時檔案副本: {ascii_file_path}")
         except Exception as e:
-            print(f"  ❌ 無法創建檔案副本: {e}")
+            logger.info(f"  ❌ 無法創建檔案副本: {e}")
             shutil.rmtree(temp_dir, ignore_errors=True)
             shutil.rmtree(ascii_temp_dir, ignore_errors=True)
             return None
@@ -256,7 +260,7 @@ def convert_pptx_to_pdf(file_path, file_name):
             temp_dir, f"{os.path.splitext(ascii_file_name)[0]}.pdf"
         )
 
-        print(f"🔄 開始將 PPTX 轉換為 PDF: {ascii_file_path}")
+        logger.info(f"🔄 開始將 PPTX 轉換為 PDF: {ascii_file_path}")
 
         # 確保系統中有中文字體
         try:
@@ -283,16 +287,18 @@ def convert_pptx_to_pdf(file_path, file_name):
                                     "song",
                                 ]
                             ):
-                                print(f"  ✓ 找到中文字體: {os.path.join(root, file)}")
+                                logger.info(
+                                    f"  ✓ 找到中文字體: {os.path.join(root, file)}"
+                                )
                                 found_chinese_font = True
                                 break
                     if found_chinese_font:
                         break
 
             if not found_chinese_font:
-                print("  ⚠️ 警告：可能找不到合適的中文字體，可能會影響中文顯示")
+                logger.info("  ⚠️ 警告：可能找不到合適的中文字體，可能會影響中文顯示")
         except Exception as e:
-            print(f"  ⚠️ 檢查中文字體時出錯: {e}")
+            logger.info(f"  ⚠️ 檢查中文字體時出錯: {e}")
 
         # 使用 LibreOffice 進行轉換
         try:
@@ -356,7 +362,7 @@ def convert_pptx_to_pdf(file_path, file_name):
                     break
 
                 try:
-                    print(
+                    logger.info(
                         f"  🔄 嘗試使用{method['name']}轉換: {' '.join(method['cmd'])}"
                     )
                     result = subprocess.run(
@@ -373,36 +379,36 @@ def convert_pptx_to_pdf(file_path, file_name):
                         # 如果生成了ASCII檔名的PDF，重命名為原始檔名
                         try:
                             shutil.move(ascii_output_pdf, output_pdf)
-                            print(
+                            logger.info(
                                 f"  ✓ {method['name']}成功: 已將 {ascii_output_pdf} 重命名為 {output_pdf}"
                             )
                             success = True
                             break
                         except Exception as e:
-                            print(f"  ⚠️ 重命名PDF文件時出錯: {e}")
+                            logger.info(f"  ⚠️ 重命名PDF文件時出錯: {e}")
                     elif os.path.exists(output_pdf):
-                        print(f"  ✓ {method['name']}成功: 生成了 {output_pdf}")
+                        logger.info(f"  ✓ {method['name']}成功: 生成了 {output_pdf}")
                         success = True
                         break
                     else:
-                        print(f"  ❌ {method['name']}失敗: 沒有生成PDF文件")
+                        logger.info(f"  ❌ {method['name']}失敗: 沒有生成PDF文件")
                         if result.returncode != 0:
-                            print(f"  命令返回碼: {result.returncode}")
+                            logger.info(f"  命令返回碼: {result.returncode}")
                         if result.stdout:
-                            print(f"  命令輸出: {result.stdout}")
+                            logger.info(f"  命令輸出: {result.stdout}")
                         if result.stderr:
-                            print(f"  命令錯誤: {result.stderr}")
+                            logger.info(f"  命令錯誤: {result.stderr}")
                 except subprocess.TimeoutExpired:
-                    print(f"  ⚠️ {method['name']}轉換超時")
+                    logger.info(f"  ⚠️ {method['name']}轉換超時")
                 except Exception as e:
-                    print(f"  ❌ 執行{method['name']}時出錯: {e}")
+                    logger.info(f"  ❌ 執行{method['name']}時出錯: {e}")
 
             # 檢查最終結果
             if success and os.path.exists(output_pdf):
                 # 檢查 PDF 文件大小
                 pdf_size = os.path.getsize(output_pdf) / 1024  # 轉換為 KB
                 if pdf_size < 5:  # 小於 5KB 可能是空文件或轉換失敗
-                    print(
+                    logger.info(
                         f"  ⚠️ 警告：生成的 PDF 文件非常小 ({pdf_size:.2f} KB)，可能轉換不完整"
                     )
 
@@ -414,7 +420,7 @@ def convert_pptx_to_pdf(file_path, file_name):
 
                 return output_pdf
             else:
-                print(f"  ❌ 所有轉換方法都失敗了")
+                logger.info(f"  ❌ 所有轉換方法都失敗了")
 
                 # 清理臨時文件
                 try:
@@ -426,7 +432,7 @@ def convert_pptx_to_pdf(file_path, file_name):
                 return None
 
         except Exception as e:
-            print(f"  ❌ 轉換過程中出錯: {str(e)}")
+            logger.info(f"  ❌ 轉換過程中出錯: {str(e)}")
             import traceback
 
             traceback.print_exc()
@@ -441,7 +447,7 @@ def convert_pptx_to_pdf(file_path, file_name):
             return None
 
     except Exception as e:
-        print(f"❌ 處理 PPTX 文件 {file_name} 時發生未預期的錯誤: {str(e)}")
+        logger.error(f"❌ 處理 PPTX 文件 {file_name} 時發生未預期的錯誤: {str(e)}")
         import traceback
 
         traceback.print_exc()
@@ -538,7 +544,7 @@ def categorize_elements(raw_elements):
 
 
 if __name__ == "__main__":
-    print(
+    logger.info(
         "This module should be used via app.py or main.py; it is not intended for direct execution."
     )
 
@@ -567,7 +573,7 @@ def process_single_file(
     import time
 
     file_start_time = time.time()
-    print(f"\n📄 處理文件: {fname}")
+    logger.info(f"\n📄 處理文件: {fname}")
 
     result = {
         "texts": [],
@@ -584,19 +590,19 @@ def process_single_file(
             result["file_type"] = "pdf"
             # 提取傳統元素
             extract_start = time.time()
-            print(f"  🔄 開始提取 PDF 元素: {fname}")
+            logger.info(f"  🔄 開始提取 PDF 元素: {fname}")
             raw_elements = extract_pdf_elements(fpath, fname, database_dir=database_dir)
             texts, tables = categorize_elements(raw_elements)
             result["texts"] = texts
             result["tables"] = tables
-            print(f"  ✓ 提取元素: {time.time() - extract_start:.2f} 秒")
+            logger.info(f"  ✓ 提取元素: {time.time() - extract_start:.2f} 秒")
 
             # 將 PDF 轉換為頁面圖片並生成摘要
             page_conversion_start = time.time()
             page_image_paths = convert_pdf_to_page_images(
                 fpath, fname, database_dir=database_dir
             )
-            print(f"  ✓ 頁面轉換: {time.time() - page_conversion_start:.2f} 秒")
+            logger.info(f"  ✓ 頁面轉換: {time.time() - page_conversion_start:.2f} 秒")
 
             if page_image_paths:
                 from utils.summarize import generate_pdf_page_summaries
@@ -607,7 +613,7 @@ def process_single_file(
                 )
                 result["page_summaries"] = page_summaries
                 result["page_identifiers"] = page_identifiers
-                print(f"  ✓ 頁面摘要生成: {time.time() - summary_start:.2f} 秒")
+                logger.info(f"  ✓ 頁面摘要生成: {time.time() - summary_start:.2f} 秒")
 
         elif fname.lower().endswith(".pptx") or fname.lower().endswith(".ppt"):
             result["file_type"] = "pptx"
@@ -619,7 +625,7 @@ def process_single_file(
             texts, tables = categorize_elements(raw_elements)
             result["texts"] = texts
             result["tables"] = tables
-            print(f"  ✓ PPTX 元素提取: {time.time() - pptx_start:.2f} 秒")
+            logger.info(f"  ✓ PPTX 元素提取: {time.time() - pptx_start:.2f} 秒")
 
             # 將 PPTX 轉換為 PDF，然後處理這個 PDF
             conversion_start = time.time()
@@ -629,14 +635,16 @@ def process_single_file(
 
                 pdf_filename = os.path.basename(pdf_path)
                 pdf_dir = os.path.dirname(pdf_path)
-                print(f"  ✓ PPTX 轉 PDF: {time.time() - conversion_start:.2f} 秒")
+                logger.info(f"  ✓ PPTX 轉 PDF: {time.time() - conversion_start:.2f} 秒")
 
                 # 對轉換後的 PDF 進行頁面轉換
                 page_conversion_start = time.time()
                 page_image_paths = convert_pdf_to_page_images(
                     pdf_dir, pdf_filename, database_dir=database_dir
                 )
-                print(f"  ✓ PDF 頁面轉換: {time.time() - page_conversion_start:.2f} 秒")
+                logger.info(
+                    f"  ✓ PDF 頁面轉換: {time.time() - page_conversion_start:.2f} 秒"
+                )
 
                 # 生成頁面摘要
                 if page_image_paths:
@@ -656,14 +664,16 @@ def process_single_file(
 
                     result["page_summaries"] = page_summaries
                     result["page_identifiers"] = slide_identifiers
-                    print(f"  ✓ 幻燈片摘要生成: {time.time() - summary_start:.2f} 秒")
+                    logger.info(
+                        f"  ✓ 幻燈片摘要生成: {time.time() - summary_start:.2f} 秒"
+                    )
             else:
-                print(f"  ❌ PPTX 轉 PDF 失敗，無法處理幻燈片")
+                logger.info(f"  ❌ PPTX 轉 PDF 失敗，無法處理幻燈片")
 
         elif fname.lower().endswith(".docx"):
             # 添加對 DOCX 文件的處理
             result["file_type"] = "docx"
-            print(f"  ⚠️ DOCX 處理功能尚未完全實現，僅提取文本")
+            logger.info(f"  ⚠️ DOCX 處理功能尚未完全實現，僅提取文本")
 
             # 提取文字內容 (可以使用 unstructured 或其他庫)
             from unstructured.partition.docx import partition_docx
@@ -678,22 +688,22 @@ def process_single_file(
                 texts, tables = categorize_elements(elements)
                 result["texts"] = texts
                 result["tables"] = tables
-                print(
+                logger.info(
                     f"  ✓ DOCX 元素提取完成，獲取了 {len(texts)} 個文本段落和 {len(tables)} 個表格"
                 )
             except Exception as docx_err:
-                print(f"  ❌ DOCX 處理出錯: {docx_err}")
+                logger.info(f"  ❌ DOCX 處理出錯: {docx_err}")
                 # 仍然返回部分結果
 
     except Exception as e:
-        print(f"  ❌ 處理文件 {fname} 時出錯: {str(e)}")
+        logger.info(f"  ❌ 處理文件 {fname} 時出錯: {str(e)}")
         import traceback
 
         traceback.print_exc()
 
     processing_time = time.time() - file_start_time
     result["processing_time"] = processing_time
-    print(f"  ✓ 文件 {fname} 處理完成: {processing_time:.2f} 秒")
+    logger.info(f"  ✓ 文件 {fname} 處理完成: {processing_time:.2f} 秒")
 
     return result
 
@@ -729,7 +739,7 @@ def process_single_file(
 
 #     import time
 #     file_start_time = time.time()
-#     print(f"\n📄 處理文件: {fname}")
+#     logger.info(f"\n📄 處理文件: {fname}")
 
 
 #     try:
@@ -739,12 +749,12 @@ def process_single_file(
 
 
 #     except Exception as e:
-#         print(f"  ❌ 處理文件 {fname} 時出錯: {str(e)}")
+#         logger.info(f"  ❌ 處理文件 {fname} 時出錯: {str(e)}")
 #         import traceback
 #         traceback.print_exc()
 
 #     processing_time = time.time() - file_start_time
 #     result['processing_time'] = processing_time
-#     print(f"  ✓ 文件 {fname} 處理完成: {processing_time:.2f} 秒")
+#     logger.info(f"  ✓ 文件 {fname} 處理完成: {processing_time:.2f} 秒")
 
 #     return result

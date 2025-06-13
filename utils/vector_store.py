@@ -1,28 +1,33 @@
-import os
-import json
-import uuid
 import base64
 import io
-import re
-import numpy as np
-from io import BytesIO
-from typing import List, Dict, Any, Tuple, Optional  # Added Any, Optional
-from PIL import Image
-from IPython.display import display, HTML
+import json
+import os
+import uuid
 
-from langchain.storage import InMemoryStore
+from utils.logging_config import get_logger
+
+logger = get_logger(__name__)
+import re
+from io import BytesIO
+from typing import Any, Dict, List, Optional, Tuple  # Added Any, Optional
+
+import numpy as np
+from IPython.display import HTML, display
 from langchain.retrievers.multi_vector import MultiVectorRetriever
-from langchain_core.documents import Document
+from langchain.storage import InMemoryStore
 from langchain_community.vectorstores import FAISS  # Added FAISS import
+from langchain_core.documents import Document
+from PIL import Image
 
 # 新增資料庫資料夾路徑常數
 DATABASE_DIR = "./database"
 
+
 def create_multi_vector_retriever(
     vectorstore: Optional[Any],  # Modified to Optional[Any]
-    text_summaries: List[str], 
-    text_contents: List[str], 
-    table_summaries: List[str], 
+    text_summaries: List[str],
+    text_contents: List[str],
+    table_summaries: List[str],
     table_contents: List[str],
     image_summaries: List[str],
     image_filenames: List[str],
@@ -33,10 +38,10 @@ def create_multi_vector_retriever(
     docstore_path: str = f"{DATABASE_DIR}/docstore_mapping.json",
     update_existing: bool = False,
     # Added FAISS specific parameters
-    vectorstore_type: Optional[str] = None, 
+    vectorstore_type: Optional[str] = None,
     faiss_index_path: Optional[str] = None,
     faiss_index_name: Optional[str] = None,
-    embedding_function: Optional[Any] = None
+    embedding_function: Optional[Any] = None,
 ):
     """
     建立多向量檢索器
@@ -68,63 +73,94 @@ def create_multi_vector_retriever(
     existing_mappings = {}
     if update_existing and os.path.exists(docstore_path):
         try:
-            with open(docstore_path, 'r', encoding='utf-8') as f:
+            with open(docstore_path, "r", encoding="utf-8") as f:
                 existing_mappings = json.load(f)
-            print(f"✅ 載入現有 docstore 映射 ({len(existing_mappings)} 條記錄)")
-            
+            logger.info(f"✅ 載入現有 docstore 映射 ({len(existing_mappings)} 條記錄)")
+
             # 將現有映射加入到存儲層
             store.mset(list(existing_mappings.items()))
         except Exception as e:
-            print(f"⚠️ 載入現有 docstore 映射時出錯: {e}")
+            logger.warning(f"⚠️ 載入現有 docstore 映射時出錯: {e}")
             # 如果出錯，創建新的映射
             existing_mappings = {}
 
     # Initialize vectorstore if it's None and type is FAISS
-    if vectorstore is None and vectorstore_type == 'faiss':
+    if vectorstore is None and vectorstore_type == "faiss":
         if not all([faiss_index_path, faiss_index_name, embedding_function]):
-            raise ValueError("FAISS parameters (faiss_index_path, faiss_index_name, embedding_function) must be provided for FAISS type when vectorstore is None.")
-        
-        faiss_actual_index_file = os.path.join(faiss_index_path, f"{faiss_index_name}.faiss")
+            raise ValueError(
+                "FAISS parameters (faiss_index_path, faiss_index_name, embedding_function) must be provided for FAISS type when vectorstore is None."
+            )
+
+        faiss_actual_index_file = os.path.join(
+            faiss_index_path, f"{faiss_index_name}.faiss"
+        )
         # Ensure directory exists for loading or creating
         os.makedirs(faiss_index_path, exist_ok=True)
 
         if os.path.exists(faiss_actual_index_file):
             try:
-                print(f"[FAISS create_multi_vector_retriever] Attempting to load existing FAISS index from {faiss_index_path}/{faiss_index_name}")
+                logger.info(
+                    f"[FAISS create_multi_vector_retriever] Attempting to load existing FAISS index from {faiss_index_path}/{faiss_index_name}"
+                )
                 vectorstore = FAISS.load_local(
                     folder_path=faiss_index_path,
                     embeddings=embedding_function,
                     index_name=faiss_index_name,
-                    allow_dangerous_deserialization=True
+                    allow_dangerous_deserialization=True,
                 )
-                print(f"[FAISS create_multi_vector_retriever] Successfully loaded FAISS index.")
+                logger.info(
+                    f"[FAISS create_multi_vector_retriever] Successfully loaded FAISS index."
+                )
             except Exception as e:
-                print(f"⚠️ [FAISS create_multi_vector_retriever] Failed to load existing index: {e}. Creating a new one.")
+                logger.warning(
+                    f"⚠️ [FAISS create_multi_vector_retriever] Failed to load existing index: {e}. Creating a new one."
+                )
                 # Create with a placeholder, as FAISS can't be empty initially for some operations
                 vectorstore = FAISS.from_texts(
-                    texts=["Initial placeholder for FAISS index"], 
-                    embedding=embedding_function
+                    texts=["Initial placeholder for FAISS index"],
+                    embedding=embedding_function,
                 )
-                vectorstore.save_local(folder_path=faiss_index_path, index_name=faiss_index_name)
-                print(f"[FAISS create_multi_vector_retriever] Created and saved a new placeholder FAISS index because load failed.")
+                vectorstore.save_local(
+                    folder_path=faiss_index_path, index_name=faiss_index_name
+                )
+                logger.info(
+                    f"[FAISS create_multi_vector_retriever] Created and saved a new placeholder FAISS index because load failed."
+                )
         else:
-            print(f"[FAISS create_multi_vector_retriever] No existing FAISS index found at {faiss_index_path}/{faiss_index_name}. Creating a new one.")
-            vectorstore = FAISS.from_texts(
-                texts=["Initial placeholder for FAISS index"], 
-                embedding=embedding_function
+            logger.info(
+                f"[FAISS create_multi_vector_retriever] No existing FAISS index found at {faiss_index_path}/{faiss_index_name}. Creating a new one."
             )
-            vectorstore.save_local(folder_path=faiss_index_path, index_name=faiss_index_name)
-            print(f"[FAISS create_multi_vector_retriever] Created and saved a new placeholder FAISS index.")
-            
-    elif vectorstore is None and vectorstore_type is not None and vectorstore_type != 'faiss':
-        raise ValueError(f"Vectorstore is None and type is '{vectorstore_type}'. This configuration is not handled yet.")
-    elif vectorstore is not None and vectorstore_type == 'faiss':
-        if not isinstance(vectorstore, FAISS):
-            raise ValueError("Provided vectorstore is not a FAISS instance, but vectorstore_type is 'faiss'.")
-        print("[FAISS create_multi_vector_retriever] Using provided FAISS vectorstore.")
-    elif vectorstore is None and vectorstore_type is None:
-        raise ValueError("Vectorstore is None and vectorstore_type is also None. Cannot proceed.")
+            vectorstore = FAISS.from_texts(
+                texts=["Initial placeholder for FAISS index"],
+                embedding=embedding_function,
+            )
+            vectorstore.save_local(
+                folder_path=faiss_index_path, index_name=faiss_index_name
+            )
+            logger.info(
+                f"[FAISS create_multi_vector_retriever] Created and saved a new placeholder FAISS index."
+            )
 
+    elif (
+        vectorstore is None
+        and vectorstore_type is not None
+        and vectorstore_type != "faiss"
+    ):
+        raise ValueError(
+            f"Vectorstore is None and type is '{vectorstore_type}'. This configuration is not handled yet."
+        )
+    elif vectorstore is not None and vectorstore_type == "faiss":
+        if not isinstance(vectorstore, FAISS):
+            raise ValueError(
+                "Provided vectorstore is not a FAISS instance, but vectorstore_type is 'faiss'."
+            )
+        logger.info(
+            "[FAISS create_multi_vector_retriever] Using provided FAISS vectorstore."
+        )
+    elif vectorstore is None and vectorstore_type is None:
+        raise ValueError(
+            "Vectorstore is None and vectorstore_type is also None. Cannot proceed."
+        )
 
     # 建立多向量檢索器，結合向量庫與文件存儲層
     retriever = MultiVectorRetriever(
@@ -137,8 +173,14 @@ def create_multi_vector_retriever(
     all_mappings = existing_mappings.copy() if update_existing else {}
 
     # 定義輔助函式，將摘要與原始內容加入向量庫與文件存儲
-    def add_documents(current_retriever, doc_summaries, doc_contents, doc_filenames=None, doc_type=None):
-        if not doc_contents: # Avoid error if contents are empty
+    def add_documents(
+        current_retriever,
+        doc_summaries,
+        doc_contents,
+        doc_filenames=None,
+        doc_type=None,
+    ):
+        if not doc_contents:  # Avoid error if contents are empty
             return
         # 生成與內容數量相同的唯一 UUID 列表，作為文件 ID
         doc_ids = [str(uuid.uuid4()) for _ in doc_contents]
@@ -153,27 +195,46 @@ def create_multi_vector_retriever(
         # Prepare content for docstore
         if doc_type == "page":  # 如果是頁面類型
             # 存儲頁面信息和摘要
-            store_contents = [{'page_id': doc_contents[i], 'summary': doc_summaries[i], 'type': 'pdf_page'}
-                             for i in range(len(doc_contents))]
+            store_contents = [
+                {
+                    "page_id": doc_contents[i],
+                    "summary": doc_summaries[i],
+                    "type": "pdf_page",
+                }
+                for i in range(len(doc_contents))
+            ]
         elif doc_type == "slide":  # 新增：如果是幻燈片類型
             # 存儲幻燈片信息和摘要
-            store_contents = [{'slide_id': doc_contents[i], 'summary': doc_summaries[i], 'type': 'pptx_slide'}
-                             for i in range(len(doc_contents))]
+            store_contents = [
+                {
+                    "slide_id": doc_contents[i],
+                    "summary": doc_summaries[i],
+                    "type": "pptx_slide",
+                }
+                for i in range(len(doc_contents))
+            ]
         elif doc_filenames:  # 如果提供了文件名（對於圖片）
             # 存儲帶有文件名和摘要的字典
-            store_contents = [{'filename': doc_contents[i], 'summary': doc_summaries[i], 'type': 'image'}
-                             for i in range(len(doc_contents))]
+            store_contents = [
+                {
+                    "filename": doc_contents[i],
+                    "summary": doc_summaries[i],
+                    "type": "image",
+                }
+                for i in range(len(doc_contents))
+            ]
         else:  # 對於文字和表格，直接存儲內容
             # 添加類型信息
             doc_type = "text" if doc_summaries == text_summaries else "table"
-            store_contents = [{'content': content, 'type': doc_type} for content in doc_contents]
+            store_contents = [
+                {"content": content, "type": doc_type} for content in doc_contents
+            ]
 
         # 將原始內容以 doc_id 為鍵，存入文件存儲層
         mappings = list(zip(doc_ids, store_contents))
         retriever.docstore.mset(mappings)
         # 更新總映射
         all_mappings.update(dict(mappings))
-
 
     if text_summaries and text_contents:
         add_documents(retriever, text_summaries, text_contents)
@@ -183,39 +244,51 @@ def create_multi_vector_retriever(
 
     if image_summaries and image_filenames:
         add_documents(retriever, image_summaries, image_filenames, image_filenames)
-    
+
     # 添加頁面摘要處理
     if page_summaries and page_identifiers:
         add_documents(retriever, page_summaries, page_identifiers, doc_type="page")
-        print(f"✅ 已添加 {len(page_summaries)} 頁 PDF 頁面摘要到向量庫")
-    
+        logger.info(f"✅ 已添加 {len(page_summaries)} 頁 PDF 頁面摘要到向量庫")
+
     # 新增：添加幻燈片摘要處理
     if slide_summaries and slide_identifiers:
         add_documents(retriever, slide_summaries, slide_identifiers, doc_type="slide")
-        print(f"✅ 已添加 {len(slide_summaries)} 張 PPTX 幻燈片摘要到向量庫")
+        logger.info(f"✅ 已添加 {len(slide_summaries)} 張 PPTX 幻燈片摘要到向量庫")
 
     # 保存映射到文件
     try:
         os.makedirs(os.path.dirname(docstore_path), exist_ok=True)
-        with open(docstore_path, 'w', encoding='utf-8') as f:
+        with open(docstore_path, "w", encoding="utf-8") as f:
             json.dump(all_mappings, f, ensure_ascii=False, indent=4)
-        print(f"✅ Docstore mapping saved to {docstore_path}")
+        logger.info(f"✅ Docstore mapping saved to {docstore_path}")
     except Exception as e:
-        print(f"❌ Error saving docstore mapping: {e}")
+        logger.error(f"❌ Error saving docstore mapping: {e}")
 
     # Save the FAISS index if it was used and potentially modified
-    if vectorstore_type == 'faiss' and isinstance(vectorstore, FAISS) and faiss_index_path and faiss_index_name:
+    if (
+        vectorstore_type == "faiss"
+        and isinstance(vectorstore, FAISS)
+        and faiss_index_path
+        and faiss_index_name
+    ):
         try:
-            print(f"[FAISS create_multi_vector_retriever] Saving FAISS index to {faiss_index_path}/{faiss_index_name}...")
-            vectorstore.save_local(folder_path=faiss_index_path, index_name=faiss_index_name)
-            print(f"✅ [FAISS create_multi_vector_retriever] FAISS index saved successfully.")
+            logger.info(
+                f"[FAISS create_multi_vector_retriever] Saving FAISS index to {faiss_index_path}/{faiss_index_name}..."
+            )
+            vectorstore.save_local(
+                folder_path=faiss_index_path, index_name=faiss_index_name
+            )
+            logger.info(
+                f"✅ [FAISS create_multi_vector_retriever] FAISS index saved successfully."
+            )
         except Exception as e:
-            print(f"❌ [FAISS create_multi_vector_retriever] Error saving FAISS index: {e}")
+            logger.error(
+                f"❌ [FAISS create_multi_vector_retriever] Error saving FAISS index: {e}"
+            )
             # Potentially raise the error or handle it as critical
-            raise e # Re-raise to make the calling function aware of save failure
+            raise e  # Re-raise to make the calling function aware of save failure
 
     return retriever
-
 
 
 def plt_img_base64(img_base64):
@@ -228,6 +301,7 @@ def plt_img_base64(img_base64):
     # Display the image by rendering the HTML
     display(HTML(image_html))
 
+
 def looks_like_base64(sb):
     """
     判斷字串是否為 base64 格式。
@@ -235,6 +309,7 @@ def looks_like_base64(sb):
     回傳：True/False
     """
     return re.match("^[A-Za-z0-9+/]+[=]{0,2}$", sb) is not None
+
 
 def is_image_data(b64data):
     """
@@ -285,4 +360,6 @@ def resize_base64_image(base64_string, size=(128, 128)):
 
 
 if __name__ == "__main__":
-    print("This module is used by the main workflow; run app.py or main.py instead of executing it directly.")
+    logger.info(
+        "This module is used by the main workflow; run app.py or main.py instead of executing it directly."
+    )
