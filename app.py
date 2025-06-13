@@ -4,6 +4,9 @@ import os
 import dotenv
 
 dotenv.load_dotenv()
+from utils.logging_config import get_logger
+
+logger = get_logger(__name__)
 import asyncio
 import json
 import shutil
@@ -116,7 +119,7 @@ def refresh_retriever(username: str):
     user_paths = get_user_paths(username)
 
     with retriever_lock:
-        print("🔄 刷新檢索器和 RAG 鏈 (FAISS 版本)...")
+        logger.info("🔄 刷新檢索器和 RAG 鏈 (FAISS 版本)...")
         start_time = time.time()
 
         try:
@@ -133,13 +136,15 @@ def refresh_retriever(username: str):
                         FAISS_INDEX_NAME,
                         allow_dangerous_deserialization=True,
                     )
-                    print(
+                    logger.info(
                         f"[FAISS] Loaded existing FAISS index from {user_paths['faiss_index_path']}/{FAISS_INDEX_NAME}"
                     )
                     if hasattr(vectorstore.index, "ntotal"):
-                        print(f"[FAISS] Index size: {vectorstore.index.ntotal} vectors")
+                        logger.info(
+                            f"[FAISS] Index size: {vectorstore.index.ntotal} vectors"
+                        )
                 except Exception as load_err:
-                    print(
+                    logger.warning(
                         f"⚠️ [FAISS] Error loading index: {load_err}. Will attempt to create a new one."
                     )
                     vectorstore = None  # Ensure it's None so a new one is created
@@ -152,7 +157,7 @@ def refresh_retriever(username: str):
                     initial_doc_texts, text_embedding_3_large
                 )
                 vectorstore.save_local(user_paths["faiss_index_path"], FAISS_INDEX_NAME)
-                print(
+                logger.info(
                     f"[FAISS] Initialized and saved a placeholder FAISS index at {user_paths['faiss_index_path']}/{FAISS_INDEX_NAME}"
                 )
 
@@ -182,12 +187,12 @@ def refresh_retriever(username: str):
             }
 
             refresh_time = time.time() - start_time
-            print(f"✅ 檢索器刷新完成 (FAISS) (耗時: {refresh_time:.2f} 秒)")
-            print(f"📊 文檔映射條目數: {len(loaded_mapping)}")
+            logger.info(f"✅ 檢索器刷新完成 (FAISS) (耗時: {refresh_time:.2f} 秒)")
+            logger.info(f"📊 文檔映射條目數: {len(loaded_mapping)}")
 
             return True
         except Exception as e:
-            print(f"❌ 檢索器刷新失敗 (FAISS): {str(e)}")
+            logger.error(f"❌ 檢索器刷新失敗 (FAISS): {str(e)}")
             import traceback
 
             traceback.print_exc()
@@ -196,7 +201,7 @@ def refresh_retriever(username: str):
 
 @app.on_event("startup")
 async def startup_event():
-    print("🚀 初始化 MM-RAG 系統 (FAISS 版本)...")
+    logger.info("🚀 初始化 MM-RAG 系統 (FAISS 版本)...")
 
     os.makedirs(DATABASE_ROOT, exist_ok=True)
     os.makedirs(UPLOAD_ROOT, exist_ok=True)
@@ -208,9 +213,9 @@ async def startup_event():
             with open(users_path, "r", encoding="utf-8") as f:
                 users.update(json.load(f))
         except Exception as e:
-            print(f"⚠️ 無法載入使用者檔案: {e}")
+            logger.warning(f"⚠️ 無法載入使用者檔案: {e}")
 
-    print("✅ MM-RAG 系統 (FAISS) 初始化完成，準備接收請求")
+    logger.info("✅ MM-RAG 系統 (FAISS) 初始化完成，準備接收請求")
 
 
 from fastapi import Response
@@ -248,14 +253,14 @@ def add_file_to_vector_db(file_path: str, username: str) -> bool:
         create_multi_vector_retriever,
     )  # This util needs to be FAISS-aware
 
-    print(f"\n🔄 處理上傳檔案 (FAISS): {file_path}")
+    logger.info(f"\n🔄 處理上傳檔案 (FAISS): {file_path}")
 
     try:
         file_name = os.path.basename(file_path)
         file_ext = os.path.splitext(file_name)[1].lower()
 
         if file_ext not in [".pdf", ".pptx", ".ppt", ".docx"]:
-            print(f"❌ 不支援的檔案類型: {file_ext}")
+            logger.error(f"❌ 不支援的檔案類型: {file_ext}")
             return False
 
         import tempfile
@@ -270,7 +275,7 @@ def add_file_to_vector_db(file_path: str, username: str) -> bool:
         )  # Assumes this util is generic
 
         if not result:
-            print(f"❌ 檔案處理失敗: {file_name}")
+            logger.error(f"❌ 檔案處理失敗: {file_name}")
             shutil.rmtree(temp_dir)
             return False
 
@@ -304,9 +309,9 @@ def add_file_to_vector_db(file_path: str, username: str) -> bool:
                     FAISS_INDEX_NAME,
                     allow_dangerous_deserialization=True,
                 )
-                print(f"[FAISS] Loaded existing FAISS index for update.")
+                logger.info("[FAISS] Loaded existing FAISS index for update.")
             except Exception as e:
-                print(
+                logger.warning(
                     f"⚠️ [FAISS] Could not load existing index for update: {e}. Will create new."
                 )
                 is_new_db = True  # Force creation
@@ -333,11 +338,11 @@ def add_file_to_vector_db(file_path: str, username: str) -> bool:
 
         shutil.rmtree(temp_dir)
 
-        print(f"✅ 檔案 {file_name} 成功添加到向量資料庫 (FAISS)")
+        logger.info(f"✅ 檔案 {file_name} 成功添加到向量資料庫 (FAISS)")
         return True
 
     except Exception as e:
-        print(f"❌ 處理檔案時發生錯誤 (FAISS): {str(e)}")
+        logger.error(f"❌ 處理檔案時發生錯誤 (FAISS): {str(e)}")
         import traceback
 
         traceback.print_exc()
@@ -379,7 +384,7 @@ def process_file_in_subprocess(args) -> bool:
     try:
         return add_file_to_vector_db(file_path, username)  # Calls the FAISS version
     except Exception as e:
-        print(f"❌ processing file in subprocess: {str(e)}")
+        logger.error(f"❌ processing file in subprocess: {str(e)}")
         return False
 
 
@@ -391,7 +396,7 @@ async def process_document_async(
             update_document_status(
                 document_id, username, "processing", "Processing document...", file_name
             )
-            print(f"🔄 file processing for {file_name} (ID: {document_id})")
+            logger.info(f"🔄 file processing for {file_name} (ID: {document_id})")
 
             full_file_path = os.path.join(file_path, file_name)
             file_ext = os.path.splitext(file_name)[1].lower()
@@ -419,13 +424,15 @@ async def process_document_async(
                     "Document processed successfully",
                     file_name,
                 )
-                print(f"✅ file processed successfully {file_name} (ID: {document_id})")
-                print("🔄 file processing completed, refreshing retriever")
+                logger.info(
+                    f"✅ file processed successfully {file_name} (ID: {document_id})"
+                )
+                logger.info("🔄 file processing completed, refreshing retriever")
                 refresh_success = refresh_retriever(username)
                 if refresh_success:
-                    print("✅ retriever refreshed successfully")
+                    logger.info("✅ retriever refreshed successfully")
                 else:
-                    print("⚠️ retriever refresh failed, please check logs")
+                    logger.warning("⚠️ retriever refresh failed, please check logs")
             else:
                 update_document_status(
                     document_id,
@@ -434,12 +441,12 @@ async def process_document_async(
                     "Document processing failed",
                     file_name,
                 )
-                print(
+                logger.error(
                     f"❌ document processing for {file_name} failed unexpectedly (ID: {document_id}) "
                 )
 
         except Exception as e:
-            print(f"❌ file processing error: {str(e)}")
+            logger.error(f"❌ file processing error: {str(e)}")
             update_document_status(
                 document_id,
                 username,
@@ -509,7 +516,7 @@ async def upload_document(
             id=document_id, filename=file.filename, status=status, message=message
         )
     except Exception as e:
-        print(f"File upload failed: {str(e)}")
+        logger.error(f"File upload failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
 
 
@@ -555,11 +562,11 @@ async def query(
             if (not user_data) or (
                 time.time() - user_data["last_refresh"] > refresh_interval
             ):
-                print("檢索器未初始化或已過期，正在刷新...")
+                logger.info("檢索器未初始化或已過期，正在刷新...")
                 refresh_retriever(username)
                 user_data = user_retrievers.get(username)
 
-        print(f"🔍 處理查詢: {query_request.query}")
+        logger.info(f"🔍 處理查詢: {query_request.query}")
 
         with retriever_lock:
             if user_data:
@@ -569,11 +576,11 @@ async def query(
                 if hasattr(current_retriever.vectorstore, "index") and hasattr(
                     current_retriever.vectorstore.index, "ntotal"
                 ):
-                    print(
+                    logger.info(
                         f"[FAISS Query] Index size: {current_retriever.vectorstore.index.ntotal} vectors."
                     )
                 else:
-                    print(
+                    logger.info(
                         "[FAISS Query] Vectorstore index details not available or not a standard FAISS index."
                     )
 
@@ -584,12 +591,12 @@ async def query(
                         user_paths["docstore_mapping_path"], "r", encoding="utf-8"
                     ) as f:
                         mapping_len = len(json.load(f))
-                    print(f"[FAISS Query] Docstore mapping items: {mapping_len}")
+                    logger.info(f"[FAISS Query] Docstore mapping items: {mapping_len}")
 
                 try:
                     # retrieve documents to see which docs are refereced
                     retrieved_docs = current_retriever.invoke(query_request.query)
-                    print(f"📄 檢索到 {len(retrieved_docs)} 條相關文檔 (FAISS)")
+                    logger.info(f"📄 檢索到 {len(retrieved_docs)} 條相關文檔 (FAISS)")
                     # if retrieved_docs:
                     #     reference_parts = ["Retrieved document contents:"]
                     #     for i, doc in enumerate(retrieved_docs):
@@ -606,7 +613,7 @@ async def query(
                     # return QueryResponse(answer=answer, processing_time=processing_time, reference=ref)
                     return QueryResponse(answer=answer, processing_time=processing_time)
                 except Exception as retriever_error:
-                    print(f"❌ 檢索器錯誤 (FAISS): {str(retriever_error)}")
+                    logger.error(f"❌ 檢索器錯誤 (FAISS): {str(retriever_error)}")
                     return QueryResponse(
                         answer="很抱歉，FAISS 檢索系統遇到技術問題。請確保資料庫中有相關文檔，或嘗試重置系統後重新上傳文件。",
                         processing_time=time.time() - start_time,
@@ -616,7 +623,7 @@ async def query(
                     status_code=500, detail="檢索器未初始化 (FAISS)，請稍後再試"
                 )
     except Exception as e:
-        print(f"❌ 查詢處理錯誤 (FAISS): {str(e)}")
+        logger.error(f"❌ 查詢處理錯誤 (FAISS): {str(e)}")
         import traceback
 
         traceback.print_exc()
@@ -636,7 +643,7 @@ async def reset_system(
     username = user_sessions[authorization]
     user_paths = get_user_paths(username)
     try:
-        print("🔄 开始重置系统 (FAISS)...")
+        logger.info("🔄 开始重置系统 (FAISS)...")
         with retriever_lock:
             # 1. Clear uploaded files
             try:
@@ -648,7 +655,7 @@ async def reset_system(
                     ]
                     for file_name in upload_files:
                         os.remove(os.path.join(user_paths["upload_dir"], file_name))
-                print(
+                logger.info(
                     f"✅ 已删除 {len(upload_files) if 'upload_files' in locals() else 0} 个上传文件"
                 )
             except Exception as e:
@@ -661,7 +668,7 @@ async def reset_system(
                 if os.path.exists(user_paths["figure_path"]):
                     shutil.rmtree(user_paths["figure_path"])
                 os.makedirs(user_paths["figure_path"], exist_ok=True)
-                print(f"✅ 已清空图片文件夹")
+                logger.info("✅ 已清空图片文件夹")
             except Exception as e:
                 raise HTTPException(
                     status_code=500,
@@ -672,9 +679,11 @@ async def reset_system(
             try:
                 if os.path.exists(user_paths["faiss_index_path"]):
                     shutil.rmtree(user_paths["faiss_index_path"])
-                    print(f"✅ 已删除 FAISS 索引目录: {user_paths['faiss_index_path']}")
+                    logger.info(
+                        f"✅ 已删除 FAISS 索引目录: {user_paths['faiss_index_path']}"
+                    )
                 os.makedirs(user_paths["faiss_index_path"], exist_ok=True)
-                print(f"✅ 已重新创建空的 FAISS 索引目录")
+                logger.info("✅ 已重新创建空的 FAISS 索引目录")
             except Exception as e:
                 raise HTTPException(
                     status_code=500, detail=f"Failed to clear FAISS index: {str(e)}"
@@ -686,7 +695,7 @@ async def reset_system(
                     user_paths["docstore_mapping_path"], "w", encoding="utf-8"
                 ) as f:
                     json.dump({}, f, ensure_ascii=False, indent=4)
-                print(f"✅ 已重置映射文件")
+                logger.info("✅ 已重置映射文件")
             except Exception as e:
                 raise HTTPException(
                     status_code=500, detail=f"Failed to reset mapping file: {str(e)}"
@@ -695,20 +704,20 @@ async def reset_system(
             # 5. Clear status tracking
             document_status.clear()
             active_processing_tasks.clear()
-            print(f"✅ 已清空状态追踪")
+            logger.info("✅ 已清空状态追踪")
 
             # 6. Refresh retriever to initialize with empty/placeholder FAISS
             refresh_retriever(username)
-            print(f"✅ 已完成检索器刷新 (FAISS)")
+            logger.info("✅ 已完成检索器刷新 (FAISS)")
 
-        print("✅ 系統重置完成 (FAISS)")
+        logger.info("✅ 系統重置完成 (FAISS)")
         return {
             "status": "success",
             "message": "系统已重置 (FAISS)，FAISS 索引、映射文件和上传文件已清空",
             "timestamp": time.time(),
         }
     except Exception as e:
-        print(f"❌ 系统重置过程中出错 (FAISS): {str(e)}")
+        logger.error(f"❌ 系统重置过程中出错 (FAISS): {str(e)}")
         import traceback
 
         traceback.print_exc()
