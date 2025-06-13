@@ -1,13 +1,11 @@
-"""Backward compatibility wrapper for processing utilities."""
+"""Processing utilities for different file types."""
 
-from .processing import (
-    categorize_elements,
-    convert_pdf_to_page_images,
+from .common import categorize_elements, process_single_file
+from .pdf_processing import convert_pdf_to_page_images, extract_pdf_elements
+from .pptx_processing import (
     convert_pptx_to_pdf,
     convert_pptx_to_slide_images,
-    extract_pdf_elements,
     extract_pptx_elements,
-    process_single_file,
 )
 
 __all__ = [
