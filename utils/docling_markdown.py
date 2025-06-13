@@ -9,7 +9,10 @@ from typing import List
 from docling.document_converter import DocumentConverter
 from docling_core.types.doc.base import ImageRefMode
 
+from utils.logging_config import get_logger
 from utils.summarize import encode_image
+
+logger = get_logger(__name__)
 
 
 def _summarize_image(image_path: str) -> str:
@@ -30,8 +33,11 @@ def _summarize_image(image_path: str) -> str:
             ],
         }
     ]
-    # return llm.invoke(messages).content.strip()
-    return "這是一張圖片的摘要。"  # Placeholder for actual LLM response
+    try:
+        return llm.invoke(messages).content.strip()
+    except Exception as e:
+        logger.error(f"[docling_markdown] Error summarizing image {image_path}: {e}")
+        return "無法生成圖片摘要"
 
 
 def convert_file_to_markdown(path: str) -> str:
